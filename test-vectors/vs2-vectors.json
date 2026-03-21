@@ -1,0 +1,49 @@
+{
+    "description": "Test vectors for Visual Stratum 2 implementation verification",
+    "version": "2.0",
+    "mining_gate": {
+        "window_size_ms": 600000,
+        "threshold_percent": 50,
+        "grace_period_ms": 120000,
+        "min_shares_activation": 3,
+        "cooldown_ms": 300000
+    },
+    "state_machine": [
+        {
+            "name": "initial_state",
+            "shares_submitted": 0,
+            "time_connected_ms": 0,
+            "expected_state": "INACTIVE"
+        },
+        {
+            "name": "grace_period_entry",
+            "shares_submitted": 1,
+            "time_connected_ms": 5000,
+            "expected_state": "GRACE"
+        },
+        {
+            "name": "activation",
+            "shares_submitted": 3,
+            "time_connected_ms": 30000,
+            "expected_state": "ACTIVE"
+        },
+        {
+            "name": "suspension",
+            "shares_submitted": 3,
+            "time_connected_ms": 900000,
+            "share_rate_vs_expected": 0.3,
+            "expected_state": "SUSPENDED"
+        }
+    ],
+    "stratum_embedding": [
+        {
+            "name": "v2_standard_3bytes",
+            "nonce_hex": "a1b2c3d4e5f60000",
+            "extranonce2_hex": "00000000",
+            "data_bytes": [170, 187, 204],
+            "expected_nonce": "a1b2c3d4e5f600aa",
+            "expected_extranonce2": "0000bbcc",
+            "description": "Embed 3 bytes: 1 in nonce LSB, 2 in extranonce2"
+        }
+    ]
+}

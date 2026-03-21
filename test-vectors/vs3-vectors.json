@@ -1,0 +1,135 @@
+{
+  "description": "Test vectors for Visual Stratum 3 — two Stratum profiles",
+  "version": "3.2",
+
+  "profiles": {
+    "VS3-Monero": {
+      "bytes_per_share": 5,
+      "stratum_target": "Monero Stratum (XMRig-compatible, no extranonce2)",
+      "status": "Published — reference implementation",
+      "fields": {
+        "nonce":  "4 bytes — nonce[0]=0xAA sentinel, nonce[1..3]=payload[0..2]",
+        "ntime":  "4 bytes — ntime[0..1]=real epoch hi-word (preserved), ntime[2..3]=payload[3..4]"
+      }
+    },
+    "VS3-Generic": {
+      "bytes_per_share": 7,
+      "stratum_target": "Bitcoin/Ethereum-style Stratum (extranonce2 present)",
+      "status": "Specified; reference implementation pending",
+      "fields": {
+        "nonce":       "8 bytes — last 2 nibbles carry 1 payload byte",
+        "extranonce2": "≥4 bytes — last 4 bytes carry payload[1..4]",
+        "ntime":       "4 bytes — last 2 bytes carry payload[5..6]"
+      }
+    }
+  },
+
+  "frame_format": {
+    "description": "Identical for both profiles — encoding only affects share-level transport",
+    "header_size": 8,
+    "fields": [
+      { "byte": 0,     "name": "MAGIC_BYTE",       "value": "0xAA" },
+      { "byte": 1,     "name": "VERSION",           "value": "0x03 (VS3)" },
+      { "byte": 2,     "name": "MSG_TYPE",          "values": { "TEXT": "0x01", "ACK": "0x02", "PING": "0x03", "KEY_EXCHANGE": "0x04", "ENCRYPTED": "0x05" } },
+      { "bytes": "3-4","name": "MSG_ID",            "note": "uint16 big-endian" },
+      { "byte": 5,     "name": "FRAGMENT_INDEX",    "note": "0-based" },
+      { "byte": 6,     "name": "TOTAL_FRAGMENTS",   "note": "1-50 inclusive" },
+      { "byte": 7,     "name": "FRAGMENT_LENGTH",   "note": "max 128 bytes per fragment" }
+    ],
+    "note": "A frame assembled from VS3-Monero shares is byte-for-byte identical to one assembled from VS3-Generic shares carrying the same payload. Profiles differ only in how bytes are transported per share."
+  },
+
+  "vs3_monero_vectors": [
+    {
+      "name": "monero_hello",
+      "description": "Payload encodes ASCII 'Hello' (5 bytes)",
+      "input":    { "ntime_hex": "65b2a100", "payload_hex": "48656c6c6f" },
+      "expected": { "nonce": "aa48656c", "ntime": "65b26c6f" }
+    },
+    {
+      "name": "monero_zero",
+      "description": "All-zero payload",
+      "input":    { "ntime_hex": "65b2a100", "payload_hex": "0000000000" },
+      "expected": { "nonce": "aa000000", "ntime": "65b20000" }
+    },
+    {
+      "name": "monero_ff",
+      "description": "All-0xFF payload",
+      "input":    { "ntime_hex": "65b2a100", "payload_hex": "ffffffffff" },
+      "expected": { "nonce": "aaffffff", "ntime": "65b2ffff" }
+    },
+    {
+      "name": "monero_roundtrip",
+      "description": "Arbitrary payload — embed then extract must recover original",
+      "input":    { "ntime_hex": "67890abc", "payload_hex": "123456789a" },
+      "expected": { "nonce": "aa123456", "ntime": "6789789a" }
+    },
+    {
+      "name": "monero_ntime_hi_preserved",
+      "description": "ntime high word is never modified regardless of payload",
+      "input":    { "ntime_hex": "deadbeef", "payload_hex": "aabbccddee" },
+      "expected": { "nonce": "aaaabbcc", "ntime": "deadddee" }
+    }
+  ],
+
+  "vs3_generic_vectors": [
+    {
+      "name": "generic_reference",
+      "description": "Reference vector — paper Appendix B.3 (7-byte payload)",
+      "input": {
+        "nonce_hex":       "a1b2c3d4e5f67800",
+        "extranonce2_hex": "0000000000000000",
+        "ntime_hex":       "65b2a100",
+        "payload_hex":     "aabbccddeeff11"
+      },
+      "expected": {
+        "nonce":       "a1b2c3d4e5f67a0a",
+        "extranonce2": "00000000bbccddee",
+        "ntime":       "65b2ff11"
+      },
+      "algorithm": {
+        "nonce_byte":   "split across last 2 bytes as nibbles: high=(byte>>4)&0x0F, low=byte&0x0F",
+        "extranonce2":  "payload[1..4] replace last 4 bytes directly",
+        "ntime":        "payload[5..6] replace last 2 bytes directly"
+      }
+    },
+    {
+      "name": "generic_zero",
+      "description": "All-zero payload",
+      "input": {
+        "nonce_hex":       "a1b2c3d4e5f67800",
+        "extranonce2_hex": "0000000000000000",
+        "ntime_hex":       "65b2a100",
+        "payload_hex":     "00000000000000"
+      },
+      "expected": {
+        "nonce":       "a1b2c3d4e5f67000",
+        "extranonce2": "0000000000000000",
+        "ntime":       "65b20000"
+      }
+    },
+    {
+      "name": "generic_roundtrip",
+      "description": "Arbitrary payload — embed then extract must recover original",
+      "input": {
+        "nonce_hex":       "deadbeef01234567",
+        "extranonce2_hex": "0011223344556677",
+        "ntime_hex":       "67890abc",
+        "payload_hex":     "123456789abcde"
+      },
+      "expected": {
+        "nonce":       "deadbeef01234162",
+        "extranonce2": "001122333456789a",
+        "ntime":       "6789bcde"
+      }
+    }
+  ],
+
+  "security_properties": {
+    "max_fragments_per_message": 50,
+    "max_fragment_size_bytes": 128,
+    "max_message_bytes": 6400,
+    "replay_window_ms": 300000,
+    "sentinel_note": "VS3-Monero uses a static 0xAA sentinel detectable by a motivated adversary. A hardened implementation replaces it with a session-keyed HMAC-derived marker."
+  }
+}

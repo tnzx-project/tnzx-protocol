@@ -1,0 +1,27 @@
+{
+  "name": "visual-stratum-reference",
+  "version": "3.0.0",
+  "description": "Reference implementation of the Visual Stratum protocol suite",
+  "license": "LGPL-2.1",
+  "author": "TNZX Project <tnzx@proton.me>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tnzx-project/tnzx-protocol"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "steganography",
+    "mining",
+    "privacy",
+    "randomx",
+    "stratum",
+    "covert-channel",
+    "encryption"
+  ]
+}
