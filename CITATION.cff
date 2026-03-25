@@ -1,0 +1,30 @@
+﻿cff-version: 1.2.0
+title: "TNZX Protocol Suite: Steganographic Communication over Cryptocurrency Mining"
+message: "If you use these protocols in your research, please cite as below."
+type: software
+authors:
+  - name: "TNZX Project"
+    email: "tnzx@proton.me"
+repository-code: "https://github.com/tnzx-project/tnzx-protocol"
+license: LGPL-2.1
+version: "1.0.0"
+date-released: "2026-03-25"
+keywords:
+  - steganography
+  - cryptocurrency
+  - mining
+  - privacy
+  - censorship-resistance
+  - stratum-protocol
+  - randomx
+  - proof-of-work
+  - covert-channel
+abstract: >
+  A family of protocols that exploit the inherent randomness of
+  cryptocurrency mining traffic to create covert communication channels.
+  The Stratum mining protocol — used by Bitcoin, Monero, Kaspa, and others —
+  provides a high-entropy, economically motivated transport for steganographic
+  embedding. Includes Visual Stratum (steganographic embedding in Stratum
+  mining shares), Mining Gate (proof-of-work gated access control), and Falo
+  (anonymous group coordination via zero-knowledge proofs).
+notes: "Reference implementation v1.0.0 — implements VS3 protocol (v3.0.0). See repository for full protocol version history."

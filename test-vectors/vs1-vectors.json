@@ -1,0 +1,62 @@
+{
+    "description": "Test vectors for Visual Stratum 1 implementation verification",
+    "version": "1.0",
+    "vectors": [
+        {
+            "name": "basic_embed_extract",
+            "sessionKey": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            "payload": "48656c6c6f20576f726c6421",
+            "payloadType": 1,
+            "expectedCRC": 3957769958,
+            "description": "Embed/extract 'Hello World!' message"
+        },
+        {
+            "name": "ecdh_key_exchange",
+            "alicePrivate": "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a",
+            "alicePublic": "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a",
+            "bobPrivate": "5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb",
+            "bobPublic": "de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f",
+            "sharedSecret": "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742",
+            "description": "RFC 7748 X25519 test vector"
+        },
+        {
+            "name": "chacha20_poly1305",
+            "key": "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f",
+            "nonce": "070000004041424344454647",
+            "plaintext": "4c616469657320616e642047656e746c656d656e206f662074686520636c617373206f66202739393a204966204920636f756c64206f6666657220796f75206f6e6c79206f6e652074697020666f7220746865206675747572652c2073756e73637265656e20776f756c642062652069742e",
+            "ciphertext": "d31a8d34648e60db7b86afbc53ef7ec2a4aded51296e08fea9e2b5a736ee62d63dbea45e8ca9671282fafb69da92728b1a71de0a9e060b2905d6a5b67ecd3b3692ddbd7f2d778b8c9803aee328091b58fab324e4fad675945585808b4831d7bc3ff4def08e4b7a9de576d26586cec64b6116",
+            "tag": "1ae10b594f09e26a7e902ecbd0600691",
+            "description": "RFC 8439 ChaCha20-Poly1305 test vector"
+        },
+        {
+            "name": "pixel_permutation",
+            "seed": "746e7a782d746573742d73656564",
+            "length": 10,
+            "expectedOrder": [7, 2, 9, 0, 5, 3, 8, 1, 6, 4],
+            "description": "Deterministic pixel permutation for LSB insertion order"
+        },
+        {
+            "name": "capacity_calculation",
+            "width": 400,
+            "height": 300,
+            "expectedCapacity": 44984,
+            "description": "Payload capacity for 400x300 RGB PNG (3 bits/pixel)"
+        },
+        {
+            "name": "header_structure",
+            "magic": "544e5a58",
+            "version": 1,
+            "type": 1,
+            "length": 1024,
+            "checksum": 12345678,
+            "headerHex": "544e5a5801010000040000bc614e0000",
+            "description": "16-byte header: magic(4) + version(1) + type(1) + length(4) + checksum(4) + reserved(2)"
+        }
+    ],
+    "statistical_tests": {
+        "chi_square_threshold": 3.84,
+        "lsb_ratio_min": 0.45,
+        "lsb_ratio_max": 0.55,
+        "description": "Steganalysis detection thresholds — VS1 images must pass these"
+    }
+}

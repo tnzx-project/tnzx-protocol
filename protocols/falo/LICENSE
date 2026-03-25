@@ -1,0 +1,8 @@
+The Falo coordination protocol specification is licensed under AGPL-3.0.
+
+This differs from the rest of the TNZX Protocol Suite, which is LGPL-2.1-licensed.
+
+The AGPL-3.0 license requires that any implementation of Falo that is made
+available as a network service must also make its source code available.
+
+Full text: https://www.gnu.org/licenses/agpl-3.0.html
