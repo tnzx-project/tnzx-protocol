@@ -1,7 +1,7 @@
 # Visual Stratum 2 — Economic Model
 
 **Version:** 2.0
-**Status:** Production
+**Status:** Implemented and tested
 
 ---
 
@@ -28,7 +28,7 @@ The communication channel is a byproduct of mining — not an additional service
 - No internal credits or balance system
 - No custodial wallet (pool never holds user funds)
 - All payments are direct on-chain transactions
-- Any Stratum-compatible pool can implement VS2 without modifying its existing fee structure
+- Adding VS2 support requires VS2-specific code for ghost share detection, but no changes to the pool's fee calculation or payout logic
 
 ## Sustainability
 

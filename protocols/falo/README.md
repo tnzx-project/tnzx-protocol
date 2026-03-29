@@ -81,7 +81,7 @@ Nobody knows who voted what. Result is mathematically correct.
 
 ## Transport
 
-Falo uses Visual Stratum 2 (VS2) as its primary transport:
+Falo is designed to use Visual Stratum 2 (VS2) as its primary transport:
 
 - Messages travel hidden in mining traffic
 - Mining Gate provides Sybil resistance

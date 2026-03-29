@@ -49,12 +49,18 @@ HTTPS only          + Economic model        + Timing decorrelation (design)
 
 ### 1. Steganographic Mining Communication
 
-Data is hidden within standard Stratum mining share fields (nonce, extranonce2, ntime). The share is structurally valid and accepted by any standard pool; a VS-aware pool additionally extracts the payload bytes.
+Visual Stratum encodes payload bytes in Stratum share fields by having a TNZX-enhanced miner (tnzxminer) constrain specific field bytes to payload values before PoW search. A VS-aware pool extracts the payload; a non-VS pool processes the share normally (or rejects it if it is a ghost share below difficulty threshold). Standard unmodified XMRig does not implement VS encoding.
 
 ```
-Normal share:  { nonce: "a1b2c3d4", extranonce2: "00000001" }
-VS3 share:     { nonce: "aa48656c", extranonce2: "00006c6f" }
-                         ↑ sentinel  payload bytes in LSBs ↑
+Bitcoin-style V2 share (tnzxminer, extranonce2 preset before mining):
+  Normal: { nonce: "a1b2c3d4", extranonce2: "00000001" }
+  VS2:    { nonce: "a1b2XX00", extranonce2: "0000XXYY" }
+                           ↑payload nibble    ↑ 2 payload bytes preset before PoW search
+
+Monero V3 ghost share (tnzxminer, no PoW required):
+  Normal valid share: { nonce: "a1b2c3d4", result: "<valid hash>" }
+  VS3 ghost:          { nonce: "aa48656c", result: "<any>", ntime: "hihi XXYY" }
+                               ↑ sentinel  3 payload bytes     ↑ TNZX ext field
 ```
 
 The information-theoretic argument for Stratum channel undetectability is in the design paper (Section 7.2). The PNG channel requires separate steganalysis validation.
@@ -73,7 +79,7 @@ VS3 specifies distribution of messages across four channels with different steal
 
 | Channel | Bandwidth | Stealth | Direction | Implementation |
 |---------|-----------|---------|-----------|----------------|
-| Stratum shares | 5 B/share (Monero) · 7 B/share (Generic) | Highest | Upload | **Reference impl** |
+| Stratum shares | 3–5 B/share (Monero, tnzxminer) · 7 B/share (Bitcoin-style, tnzxminer) | Highest | Upload | **Reference impl** |
 | PNG charts (LSB) | 45 KB/image | Highest | Download | Specified |
 | WebSocket | 50 KB/s | High | Bidirectional | Specified |
 | HTTP/2 streams | 100 KB/s | High | Bidirectional | Specified |
