@@ -1,6 +1,6 @@
 # Visual Stratum 2 (VS2)
 
-**Version:** 2.0 | **Status:** Production | **License:** LGPL-2.1
+**Version:** 2.0 | **Status:** Implemented and tested | **License:** LGPL-2.1
 
 ---
 

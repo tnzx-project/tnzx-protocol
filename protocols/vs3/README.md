@@ -79,20 +79,30 @@ VS3 defines two encoding profiles for different Stratum variants. The frame form
 | **Test vectors** | ✅ Published | ✅ Published |
 | **Demo** | ✅ `tnzx-pool-demo` | ⏳ Pending |
 
-### VS3-Monero Encoding (5 bytes/share)
+### VS3-Monero Encoding (5 bytes/share with tnzxminer)
+
+> **Protocol note:** Standard Monero Stratum `mining.submit` contains only
+> `nonce`, `job_id`, and `result`. The `ntime` field does **not** exist in
+> standard Monero Stratum — it is a Bitcoin concept. In VS3-Monero, `ntime`
+> is a TNZX extension field added by tnzxminer to the submit params. Standard
+> XMRig does not send this field. Standard XMRig does not produce ghost shares.
+> VS3 communication requires a VS3-aware client (tnzxminer or a VS3 proxy).
+> With tnzxminer: 5 bytes/share.
+> Ghost shares require a TNZX-aware pool with `ghostDiffMax` configured;
+> standard Monero pools reject sub-difficulty shares.
 
 ```
-Share submit fields:
+Share submit fields (tnzxminer, TNZX-aware pool):
 ┌──────────────────────────────┬──────────────────────────┐
-│        NONCE  (4 bytes)      │       NTIME  (4 bytes)   │
+│        NONCE  (4 bytes)      │  NTIME (TNZX ext, 4 bytes)│
 │  [ 0xAA ][ b0 ][ b1 ][ b2 ] │  [ hi ][ hi ][ b3 ][ b4 ]│
 │  sentinel   payload[0..2]    │  ← preserved →  payload[3..4] │
 └──────────────────────────────┴──────────────────────────┘
 ```
 
-- `nonce[0] = 0xAA` — sentinel, identifies ghost share at the pool
-- `nonce[1..3]` — 3 payload bytes
-- `ntime[0..1]` — real epoch high word, preserved (keeps timestamp within ±7200 s pool window)
+- `nonce[0] = 0xAA` — sentinel, identifies ghost share at the pool (detectable; see §7.2.2 of paper)
+- `nonce[1..3]` — 3 payload bytes (freely chosen; ghost share, no PoW required)
+- `ntime[0..1]` — real epoch high word, preserved (TNZX extension field, not standard Monero)
 - `ntime[2..3]` — 2 payload bytes
 
 ### VS3-Generic Encoding (7 bytes/share)
@@ -118,33 +128,44 @@ A VS3-aware pool detects both profiles unambiguously from the share params:
 
 ```
 if difficulty > ghostDiffMax   → regular mining share, pass through
-else if nonce starts with "aa" → VS3-Monero ghost share (5B)
+else if nonce starts with "aa" → VS3-Monero ghost share (3–5 B)
 else if extranonce2 present    → VS3-Generic ghost share (7B)
 ```
+
+> **Detection note:** Standard Bitcoin miners always include `extranonce2` in
+> `mining.submit`. The `extranonce2 present` branch only applies meaningfully
+> when `difficulty ≤ ghostDiffMax`, which filters out regular mining shares.
+> However, legitimate sub-difficulty shares (during vardiff transitions) from
+> Bitcoin miners also contain extranonce2 and would be misidentified. Pools
+> should apply additional heuristics or require an out-of-band capability
+> negotiation before treating sub-difficulty Bitcoin shares as VS3-Generic.
 
 Both code paths return `{"status":"OK"}` — indistinguishable to a passive observer.
 
 ### Field Profiles
 
 VS3 defines field profiles — configurations that vary based on which Stratum
-fields the miner controls. The protocol evolved to use progressively more fields:
+fields the miner controls. V1 and V2 apply to Bitcoin-style Stratum; V3 applies
+to Monero via ghost shares + tnzxminer extensions. All profiles require a
+TNZX-enhanced miner; standard XMRig does not implement any of them.
 
-- **V1** — 1 byte/share: nonce LSB nibble only
-- **V2** — 3 bytes/share: nonce (1 B) + extranonce2 (2 B)
-- **V3** — 7 bytes/share: nonce (1 B) + extranonce2 (4 B) + ntime (2 B)
+- **V1** — 1 byte/share: nonce low nibbles (any chain, tnzxminer)
+- **V2** — 3 bytes/share: nonce (1 B) + extranonce2 preset (2 B) — Bitcoin-style only
+- **V3** — 7 bytes/share: nonce (1 B) + extranonce2 preset (4 B) + ntime (2 B) — Bitcoin-style only
 
-**Monero constraint:** In Monero Stratum, `extranonce2` is assigned by the
-pool and echoed back unchanged by the miner. VS3 on Monero therefore uses
-only `nonce + ntime` (5 bytes/share). The pool detects the active profile
-by the presence or absence of a modified `extranonce2` field.
+> **Monero note:** Standard Monero Stratum does not include `extranonce2` (as
+> a separate submit field) or `ntime`. VS3-Monero uses ghost shares for the
+> nonce channel (3 B) plus a TNZX extension field `ntime` sent by tnzxminer
+> (2 B). Standard XMRig does not produce ghost shares; VS3 requires tnzxminer
+> or a VS3 proxy. With tnzxminer: 5 B/share (3 B nonce + 2 B ntime).
 
-| Profile        | VERSION | Chain          | Stratum fields                                | B/share | Stealth | Status      |
-|----------------|---------|----------------|-----------------------------------------------|---------|---------|-------------|
-| V3-constrained | `0x03`  | Monero         | nonce (3 B) + ntime (2 B)                     | 5       | Maximum | Implemented |
-| V3-full        | `0x03`  | GPU/CPU chains | nonce (1 B) + extranonce2 (4 B) + ntime (2 B) | 7       | Maximum | Specified   |
-| V3-BURST       | `0x04`  | Any            | extranonce2 full field (base64)               | 200     | High    | Specified   |
-| V3-GHOST       | `0x05`  | Any            | difficulty-1 cover share                      | 200     | Medium  | Specified   |
-| V3-TURBO       | `0x06`  | Any            | worker password field                         | 256     | Lower   | Specified   |
+| Profile        | VERSION | Chain          | Stratum fields                                         | B/share | Stealth | Status      |
+|----------------|---------|----------------|--------------------------------------------------------|---------|---------|-------------|
+| V3-constrained | `0x03`  | Monero         | nonce ghost (3 B) + ntime TNZX-ext (2 B)              | 3–5     | Maximum | Implemented (tnzxminer) |
+| V3-full        | `0x03`  | Bitcoin-style  | nonce preset (1 B) + extranonce2 preset (4 B) + ntime (2 B) | 7  | Maximum | Specified   |
+| V3-BURST       | `0x04`  | Any            | extranonce2 full field (base64)                        | 200     | High    | Specified   |
+| V3-GHOST       | `0x05`  | Any            | difficulty-1 cover share                               | 200     | Medium  | Specified   |
+| V3-TURBO       | `0x06`  | Any            | worker password field                                  | 256     | Lower   | Specified   |
 
 Higher-bandwidth profiles (BURST, GHOST, TURBO) trade stealth for throughput.
 TURBO requires a reconnect per message and produces reconnect patterns

@@ -1,6 +1,8 @@
 /**
  * Visual Stratum Protocol — Reference Implementation
  *
+ * @license LGPL-2.1
+ *
  * @example
  * const vs = require('visual-stratum-reference');
  *

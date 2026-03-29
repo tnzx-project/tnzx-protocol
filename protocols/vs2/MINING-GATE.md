@@ -1,7 +1,7 @@
 # Mining Gate: Proof-of-Work Gated Communication
 
 **Version:** 2.0
-**Status:** Production
+**Status:** Implemented and tested
 
 ---
 
@@ -9,7 +9,7 @@
 
 Mining Gate binds communication bandwidth to active proof-of-work. The VS2 covert channel functions **only** while the user is actively submitting valid mining shares via the Stratum protocol.
 
-Stratum is the dominant mining protocol, used by pools across Bitcoin, Monero, Kaspa, Alephium, and most other PoW chains. Mining Gate is compatible with any Stratum-based pool.
+Stratum is the dominant mining protocol, used by pools across Bitcoin, Monero, Kaspa, Alephium, and most other PoW chains. Mining Gate can be added to any Stratum-based pool — it is pool-side software that tracks share rates per miner.
 
 This creates a system where:
 - **Spam is economically costly** — every message requires real computation

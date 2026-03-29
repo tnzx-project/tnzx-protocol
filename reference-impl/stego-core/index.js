@@ -3,36 +3,51 @@
  *
  * DESIGN PRINCIPLE
  * ----------------
- * Every Stratum share submission contains fields that the pool cannot
- * validate for correctness: the miner chooses the nonce freely, and ntime
- * only needs to stay within a ±7200-second window. These fields are
- * therefore available as a covert channel — the pool sees valid Stratum
- * JSON; a VS-aware pool additionally extracts hidden payload bytes.
+ * Visual Stratum embeds payload bytes in Stratum share fields by having the
+ * miner constrain specific bits/bytes to carry payload values, then searching
+ * for a valid PoW solution within the remaining degrees of freedom.
+ * A VS-aware pool extracts the payload; a non-VS pool sees a structurally
+ * normal share and processes it as usual.
  *
  * Three profiles, three carrier combinations:
  *
  *   V1 — Generic Stratum (1 byte/share)
  *     Carrier:  nonce LSB — the two least-significant nibbles of the nonce
- *     Why LSB:  Upper nibbles contribute to the PoW hash comparison; only
- *               the LSBs are freely expendable without affecting difficulty.
- *               One byte is split across two nibble slots (4 bits each).
+ *     How:      The miner fixes the low 8 bits of the nonce to the payload
+ *               byte and searches for a valid PoW solution by varying the
+ *               upper 24 bits. The pool validates the full hash (all 32 bits
+ *               of nonce contribute); by restricting 8 bits the search space
+ *               is reduced by a factor of 256, which is always feasible.
+ *               One payload byte is split across two nibble slots (4 bits each).
+ *     Requires: TNZX-enhanced miner (tnzxminer). Standard XMRig does not
+ *               constrain nonce bits to payload values.
  *
  *   V2 — Bitcoin-style Stratum (3 bytes/share)
  *     Carrier:  nonce LSB (1B) + extranonce2 last 2 bytes (2B)
- *     Why ext:  Bitcoin pools assign an extranonce2 field to each miner.
- *               Its last 2 bytes are never validated, giving 2 free bytes
- *               beyond the nonce nibble trick.
+ *     How:      extranonce2 is part of the Bitcoin coinbase transaction.
+ *               The miner PRESETS the last 2 bytes of extranonce2 to the
+ *               desired payload, then mines with that extranonce2 to find
+ *               a valid nonce. The pool recomputes the full PoW chain
+ *               (coinbase → merkle root → block header → hash) and validates
+ *               the result. Modifying extranonce2 after the nonce is found
+ *               would invalidate the share. This profile therefore requires
+ *               a custom miner that controls extranonce2 layout before mining.
+ *               Note: standard Bitcoin miners use extranonce2 as a sequential
+ *               counter; preset-extranonce2 mining requires TNZX-enhanced client.
  *
  *   V3 — Monero Stratum / VS3-Monero profile (5 bytes/share)
  *     Carrier:  nonce[1..3] (3B) + ntime[2..3] (2B)
- *     Why nonce: Monero pools do not validate the nonce against a known
- *               answer; any 4-byte value is accepted. Byte [0] is fixed
- *               to 0xAA as a ghost-share sentinel, giving bytes [1..3]
- *               freely for payload.
- *     Why ntime: Preserving the high 16 bits of the real epoch timestamp
- *               keeps ntime within the pool's ±7200s acceptance window;
- *               only the low 16 bits carry payload, contributing ≤18h
- *               of apparent drift.
+ *     How:      Ghost shares (difficulty ≤ ghostDiffMax) do not require valid
+ *               PoW — the TNZX pool accepts them regardless of hash value.
+ *               The miner freely sets all 4 nonce bytes: byte [0] = 0xAA
+ *               (sentinel for pool detection), bytes [1..3] carry 3 payload
+ *               bytes. The `ntime` field does NOT exist in standard Monero
+ *               Stratum (mining.submit contains only nonce, job_id, result).
+ *               ntime is a TNZX extension field sent by tnzxminer; the pool
+ *               falls back to zero bytes if absent. With standard XMRig
+ *               (no ntime, no ghost shares): 0 bytes/share via this channel.
+ *               With tnzxminer: 5 bytes/share (3 from nonce + 2 from ntime).
+ *     Requires: TNZX-aware pool (ghostDiffMax configured) + tnzxminer.
  *
  * VS3 FRAME FORMAT (identical for all profiles — transport-independent)
  * ──────────────────────────────────────────────────────────────────────
@@ -183,9 +198,11 @@ class StegoEncoder {
   //   nonce[len-2] low nibble ← byte >> 4   (high nibble of payload byte)
   //   nonce[len-1] low nibble ← byte & 0x0F (low nibble of payload byte)
   //
-  // Only the LSBs are used because the nonce MSBs affect which difficulty target
-  // the submitted hash satisfies — overwriting them would change the apparent
-  // share difficulty. The LSB nibbles are statistically unconstrained.
+  // The low nibbles are used as the embedding slot: the miner fixes them to the
+  // payload value and varies the upper bits during PoW search. All nonce bits
+  // affect the hash equally (cryptographic property of SHA256/RandomX); the
+  // lower bits are not "less validated" — they simply leave a larger search
+  // space in the upper bits after being constrained to the payload value.
   //
   // @param {string} nonceHex - Original nonce hex string (≥2 bytes)
   // @param {number} byte     - Single payload byte to embed (0-255)
@@ -202,10 +219,20 @@ class StegoEncoder {
 
   // --- V2: 3 bytes (nonce LSB nibbles + extranonce2 last 2 bytes) ---
   //
-  // Bitcoin-style Stratum pools assign each miner an extranonce2 field.
-  // Its purpose is to expand the nonce search space; the pool only checks
-  // that its length matches the negotiated size. The last 2 bytes are
-  // never validated against the PoW solution, making them freely available.
+  // Bitcoin-style Stratum pools assign each miner an extranonce2 field that
+  // participates in the coinbase transaction and thus in the full PoW chain
+  // (coinbase → merkle root → block header → hash). The pool validates the
+  // complete hash, which depends on extranonce2. Modifying extranonce2 after
+  // a nonce is found invalidates the share.
+  //
+  // V2 encoding therefore requires the miner to PRESET the last 2 bytes of
+  // extranonce2 to the desired payload values BEFORE beginning PoW search.
+  // The miner then varies the remaining extranonce2 bytes and the nonce until
+  // a valid hash is found. This requires a TNZX-enhanced miner; standard
+  // miners iterate extranonce2 as a sequential counter without payload preset.
+  //
+  // embedBytesV2() constructs the extranonce2 value that should be used as
+  // input to the PoW search — it must be called before mining, not after.
   //
   // V2 encoding per share:
   //   bytes[0] → nonce LSB nibbles       (via embedByteInNonce, same as V1)

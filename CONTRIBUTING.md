@@ -30,4 +30,4 @@ Thank you for your interest in contributing to the TNZX protocol suite.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the LGPL-2.1 License.
+By contributing, you agree that your contributions will be licensed under the LGPL-2.1 License. Exception: Falo (protocols/falo/ and papers/falo/) is licensed under AGPL-3.0.
