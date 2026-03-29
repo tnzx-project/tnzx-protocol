@@ -28,6 +28,11 @@ Thank you for your interest in contributing to the TNZX protocol suite.
 - No personally identifiable information in issues or PRs
 - Security vulnerabilities: report privately (see SECURITY.md), not in public issues
 
+## CLA
+
+By submitting a pull request, you agree to the [Contributor License Agreement](CLA.md).
+You retain copyright of your work.
+
 ## License
 
-By contributing, you agree that your contributions will be licensed under the LGPL-2.1 License. Exception: Falo (protocols/falo/ and papers/falo/) is licensed under AGPL-3.0.
+LGPL-2.1. Exception: Falo (protocols/falo/ and papers/falo/) is AGPL-3.0. See [LICENSE](LICENSE).
