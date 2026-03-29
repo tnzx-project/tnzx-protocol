@@ -12,7 +12,7 @@
 
 We present Visual Stratum, a family of protocols that create covert communication channels within standard cryptocurrency mining traffic. By exploiting the inherent randomness of proof-of-work share submissions, Visual Stratum embeds encrypted messages in fields that are entropy-equivalent to legitimate mining data (see Section 7.2 for the information-theoretic argument). The protocol introduces *Mining Gate*, a novel access control mechanism that binds communication bandwidth to active proof-of-work, simultaneously solving spam prevention, economic sustainability, and censorship resistance.
 
-Visual Stratum operates across three protocol generations. VS1 hides payloads in PNG chart images via LSB steganography. VS2 adds Stratum-level embedding and Mining Gate. VS3 specifies a multi-channel adaptive transport design with a theoretical bandwidth ceiling of ~195 KB/s when all four channels are active; the Stratum channel is implemented and tested, while the remaining channels (WebSocket, HTTP/2, PNG) are specified but not yet implemented. In maximum-stealth mode (Monero Stratum) the Stratum channel carries 5 bytes per share. All generations maintain backward compatibility with standard mining pool infrastructure.
+Visual Stratum operates across three protocol generations. VS1 hides payloads in PNG chart images via LSB steganography. VS2 adds Stratum-level embedding and Mining Gate. VS3 specifies a multi-channel adaptive transport design with a theoretical bandwidth ceiling of ~195 KB/s when all four channels are active; the Stratum channel is implemented and tested, while the remaining channels (WebSocket, HTTP/2, PNG) are specified but not yet implemented. In maximum-stealth mode (Monero Stratum, with tnzxminer) the Stratum channel carries up to 5 bytes per share via ghost shares; with standard XMRig the Stratum embedding channel requires a TNZX-enhanced client. VS-encoded shares are structurally valid Stratum JSON processed normally by VS-aware pools; ghost shares require a TNZX-aware pool configured to accept sub-difficulty submissions.
 
 We provide a security analysis demonstrating statistical undetectability of the Stratum embedding (encrypted payload bytes are entropy-equivalent to unmodified nonce values), perfect forward secrecy via ephemeral X25519 key exchange, and replay protection. A reference implementation of the core modules (Stratum embedding, E2E encryption, Mining Gate) validates the protocol on a RandomX-compatible testnet. The multi-channel transport layer (WebSocket, HTTP/2, PNG) is fully specified but not included in the published reference implementation.
 
@@ -53,7 +53,7 @@ These properties make mining traffic an ideal *cover channel* for steganographic
 
 This paper makes four contributions:
 
-1. **Visual Stratum Protocol.** A steganographic embedding scheme that hides encrypted data in Stratum mining share fields (nonce, extranonce2, ntime). Encrypted payload bytes are entropy-equivalent to the random values these fields normally contain (Section 7.2). *Status: implemented and tested.*
+1. **Visual Stratum Protocol.** A steganographic embedding scheme that hides encrypted data in Stratum mining share fields. For Bitcoin-style Stratum: nonce low nibbles, extranonce2 preset bytes, and ntime low bytes. For Monero Stratum: nonce bytes via ghost shares, plus a TNZX extension field (`ntime`) added by tnzxminer. The entropy-equivalence undetectability argument applies with full strength to the nonce channel; it is weaker for extranonce2 (sequential distribution in standard miners) and inapplicable to the ntime extension field in Monero (which does not exist in standard Monero Stratum). See Section 7.2 for the full analysis. *Status: implemented and tested (requires tnzxminer for V2/V3/ghost modes).*
 
 2. **Mining Gate.** A novel access control mechanism where communication bandwidth is mathematically bound to active proof-of-work. Mining Gate simultaneously provides anti-spam, Sybil resistance, economic sustainability, and censorship resistance. *Status: implemented and tested.*
 
@@ -162,15 +162,17 @@ $$C = W \times H \times 3 \text{ bits} = 400 \times 300 \times 3 = 360{,}000 \te
 
 VS2 adds two innovations: embedding data in Stratum share submissions (upload channel) and Mining Gate (access control).
 
-**Stratum embedding.** The Stratum mining protocol requires miners to submit shares containing a nonce, extranonce2, and ntime. These fields contain values that are random or miner-chosen, and the pool validates only the resulting hash — not the individual field values. VS2 replaces portions of these fields with payload data:
+**Stratum embedding.** Visual Stratum encodes payload bytes in Stratum share fields by having the miner constrain specific field bytes to payload values, then searching for a valid PoW solution within the remaining degrees of freedom. The pool validates the full PoW hash — which depends on all submitted field values — so payload bytes must be set *before* PoW search, not substituted after a solution is found.
 
-| Mode | Fields Modified | Bytes/Share |
-|------|----------------|-------------|
-| V1 Stealth | nonce LSB (2 nibbles) | 1 |
-| V2 Standard | nonce LSB + extranonce2 (2 bytes) | 3 |
-| V3 Monero | nonce[0]=0xAA sentinel + nonce[1..3] + ntime[2..3] | 5 |
+| Mode | Fields Modified | Bytes/Share | Chain | Miner required |
+|------|----------------|-------------|-------|----------------|
+| V1 Stealth | nonce low nibbles (8 bits) | 1 | Any | tnzxminer |
+| V2 Standard | nonce LSB + extranonce2 last 2 bytes (preset before mining) | 3 | Bitcoin-style | tnzxminer |
+| V3 Monero | nonce[0]=0xAA sentinel + nonce[1..3] + ntime ext (2 bytes) | 5 | Monero (TNZX pool) | tnzxminer |
 
-The modified share remains a valid proof-of-work submission. The pool processes it normally. An observer cannot distinguish a VS2 share from a regular share.
+**V1** requires the miner to fix the low byte of the nonce to the payload value and search for a valid PoW solution by varying the upper bits. **V2** requires the miner to preset extranonce2 payload bytes before beginning the search; extranonce2 is part of the Bitcoin coinbase transaction and therefore fully participates in PoW validation — post-hoc substitution would break the share. **V3-Monero** uses ghost shares (submitted below pool difficulty threshold) where no PoW validity is required; `ntime` is a TNZX extension field that does not exist in standard Monero Stratum (`mining.submit` in Monero contains only `nonce`, `job_id`, and `result`). All three modes require a TNZX-enhanced miner (tnzxminer); standard unmodified XMRig does not implement any of these encoding strategies.
+
+Ghost shares (V3 Monero) are accepted only by TNZX-aware pools with `ghostDiffMax` configured. Standard Monero pools reject sub-difficulty shares.
 
 **Mining Gate.** See Section 4.
 
@@ -450,7 +452,17 @@ $$H(n \bmod 2^8) = H(b) = 8 \text{ bits (maximum entropy)}$$
 
 No statistical test can distinguish the modified field from an unmodified one, because both contain maximum-entropy data. This argument holds for any cipher with indistinguishability from random under chosen-plaintext attack (IND-CPA), which AES-256-GCM satisfies.
 
-**Caveat.** This argument assumes (a) the encryption produces output indistinguishable from random (standard assumption for AES-GCM), and (b) the fields modified (nonce LSBs, extranonce2, ntime) are not subject to pool-side statistical monitoring that could detect distributional shifts over large sample sizes. Assumption (b) is reasonable for current Stratum implementations but is not formally verified.
+**Caveat.** This argument holds cleanly for the **nonce** field: valid mining nonces are the result of a search over a cryptographically random hash function, and their distribution over the nonce space is approximately uniform. An observer cannot distinguish a nonce whose low nibbles were constrained to a payload byte from one found without constraints, because both produce maximum-entropy values in those positions.
+
+The argument is **weaker for extranonce2 (V2)** and **does not apply to ntime in standard Monero (V3)**:
+
+- *extranonce2 (Bitcoin-style):* Standard Bitcoin miners iterate extranonce2 as a sequential counter (0x00000000, 0x00000001, …). Its distribution is not uniform — it is monotonically increasing. Replacing the last two bytes with uniformly random encrypted payload creates a detectable distributional shift. A sufficiently motivated observer monitoring extranonce2 values across many shares could detect the transition from sequential to random. This is a known weakness of the V2 profile.
+
+- *ntime (Bitcoin-style):* ntime is a Unix timestamp, not a random value. Replacing its low 16 bits with payload bytes introduces apparent clock drift that is statistically distinguishable from real timestamp behavior over time. This is separately discussed in Section 7.2 (Note on ntime undetectability).
+
+- *ntime in Monero:* The `ntime` field does not exist in standard Monero Stratum. In VS3-Monero, ntime is a TNZX extension field sent by tnzxminer; its presence in a Monero `mining.submit` is itself a distinguishing signal to a sufficiently detailed Stratum analyzer.
+
+The entropy-equivalence undetectability argument therefore applies with full strength only to the V1 nonce nibble channel.
 
 **Note on ntime undetectability.** The `ntime` field contains a Unix timestamp, not a uniformly random value. The high 16 bits (`ntime[0..1]`) are preserved as real epoch data; only the low 16 bits (`ntime[2..3]`) are overwritten with payload bytes. Encrypted payload bytes are uniformly distributed, while legitimate `ntime[2..3]` values exhibit temporal structure (incrementing with real clock time). This creates a potential statistical distinguisher for the `ntime` field specifically. The entropy-equivalence argument applies fully to the `nonce` field; for `ntime` it provides a weaker guarantee, and the undetectability of the `ntime` embedding should be considered a design target rather than a formal result.
 
@@ -542,7 +554,7 @@ Cryptographic overhead is negligible compared to mining computation and network 
 
 ### 8.4 Deployment
 
-The protocol has been deployed and tested on a RandomX-compatible testnet with multiple Stratum difficulty tiers. Multiple rounds of internal security review have been conducted; independent third-party audit is pending.
+The Stratum embedding protocol has been deployed and tested using the reference implementation against a custom TNZX-aware pool running on a RandomX-compatible testnet with multiple Stratum difficulty tiers. Testing used the reference implementation's encoder/decoder and a TNZX pool configured to accept ghost shares. Compatibility with standard unmodified XMRig has not been tested for ghost share or V2/V3 modes; these require tnzxminer. The V1 nonce nibble embedding is designed to be compatible with standard miners in principle, but was validated in the reference implementation only, not against production XMRig builds. Multiple rounds of internal security review have been conducted; independent third-party audit is pending.
 
 ### 8.5 Implementation Notes
 
