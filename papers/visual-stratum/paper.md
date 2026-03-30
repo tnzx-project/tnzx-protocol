@@ -826,6 +826,74 @@ Extending VS3 to a new chain requires implementing only the lower-layer `Channel
 
 Visual Stratum is a **general technique** applicable to any PoW mining protocol with miner-controlled random fields. However, Monero is the optimal transport due to full software control (CPU mining), privacy-native blockchain, and low barrier to entry. Cross-chain support is a resilience fallback, not a communication feature, and should be implemented only when real-world demand or regulatory pressure creates a concrete need.
 
+## Appendix D: Sentinel Replacement — HMAC-Based Ghost Share Identification
+
+### D.1 Problem
+
+The fixed sentinel `nonce[0] = 0xAA` (Section 7.2.2) is a trivial statistical distinguisher. After O(256) observed shares, a chi-square test on `nonce[0]` detects ghost share usage with near certainty. The cost (total loss of plausible deniability against DPI) is disproportionate to the value (pool-side identification).
+
+### D.2 Constraints (Monero Stratum)
+
+Monero `mining.submit` contains exactly: `nonce` (4 bytes), `result` (32 bytes), `job_id`, `params.id`. Fields `ntime` and `extranonce2` do not exist. Only `nonce` is freely miner-controlled. The `pass` field (login only) survives proxy chains; `job_id` and `params.id` do not.
+
+No shared sequence counter exists in Stratum v1. The JSON-RPC `id` is client-managed, non-standard across implementations (XMRig starts at 1, ethminer at 40+), and rewritten by proxies. Counter-based schemes are fragile and excluded.
+
+Stratum v2 is Bitcoin-only; no Monero implementation exists.
+
+### D.3 Chosen Approach: HMAC Tag on Partial Nonce
+
+```
+Key derivation (once, at login):
+  session_key = HKDF-SHA256(miner_pass, pool_salt, "tnzx-ghost-v1")
+
+Per ghost share (miner side):
+  nonce[1..3] = payload            (3 bytes)
+  nonce[0]    = HMAC-SHA256(session_key, nonce[1..3])[0]   (1 byte tag)
+
+Per share (pool side):
+  expected = HMAC-SHA256(session_key, nonce[1..3])[0]
+  if nonce[0] == expected AND difficulty <= ghostDiffMax:
+    → candidate ghost share → attempt frame decode
+  else:
+    → normal share
+```
+
+**Why this approach:**
+
+| Property | Value |
+|----------|-------|
+| Payload | 3 bytes/share (same as current) |
+| DPI detectability | None — nonce[0] is uniformly distributed |
+| Counter sync required | No |
+| Proxy-safe | Yes — key derived from `pass` field |
+| False positive rate | 1/256 per share; resolved by frame header validation |
+| Compute cost (pool) | ~400 ns/share with SHA-NI (~0.4% of 1 core at 10K shares/sec) |
+| Memory cost (pool) | ~160 bytes/miner (session_key + lookup) |
+
+### D.4 Why Not the Alternatives
+
+**Counter-based HMAC** (`HMAC(key, job_id || seq)`): requires synchronized counter. Desyncs on rejected shares, reconnections, proxy remapping. Fragile.
+
+**Encrypted full nonce** (`AES-CTR(key, nonce[0..3])`): gains 1 extra byte (4B vs 3B payload) but requires pool to attempt decryption of every incoming share, not just ghost candidates. Viable but premature optimization.
+
+**Result-field discriminant** (`result = "00...00"`): moves the sentinel from nonce to result. Equally detectable — any observer can verify PoW validity.
+
+**V1 real PoW with constrained nonce**: genuine undetectability (share passes PoW verification), but 256x computational cost and only 1 byte/share. Reserved for maximum-stealth mode.
+
+### D.5 Detectability After This Change
+
+| Observer type | Before (0xAA) | After (HMAC tag) |
+|---------------|--------------|-------------------|
+| ISP/DPI (pattern matching) | Trivial | **Eliminated** |
+| Stratum parser (PoW verification) | Detectable | Detectable (inherent to ghost shares) |
+| Pool operator | By design | By design |
+
+Ghost shares remain detectable by an adversary who parses full Stratum traffic and verifies PoW, because their `result` field contains an invalid hash. This is inherent to the ghost share concept — no sentinel design changes it. The HMAC tag eliminates the cheaper DPI-level detection path.
+
+### D.6 Status
+
+Analysis complete. Spec update and implementation pending.
+
 ---
 
 *End of paper.*
