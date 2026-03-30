@@ -135,6 +135,8 @@ A standalone proof-of-concept pool and client is available at [tnzx-project/tnzx
 
 It demonstrates the complete VS3 transport round-trip — ghost share encoding, frame reassembly, and bidirectional delivery — running locally with no Monero daemon and no external dependencies. Two parties can exchange messages through the pool using three terminal windows.
 
+The proxy has been tested for bidirectional messaging between two miners through standard, unmodified production pools (HashVault for Monero, Braiins Pool for Bitcoin). Timestamped transcripts of all tests are published in the demo repository.
+
 ## Comparison with Existing Systems
 
 This table compares design properties, not deployment maturity. Tor and Signal are battle-tested systems with years of independent auditing and massive user bases — advantages that Visual Stratum does not have.
