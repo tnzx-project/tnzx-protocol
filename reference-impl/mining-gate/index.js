@@ -8,7 +8,7 @@
  *
  * Dependencies: Node.js crypto module only
  *
- * @version 1.0.0
+ * @version 1.0.1
  * @license LGPL-2.1
  */
 'use strict';

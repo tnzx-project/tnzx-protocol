@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.2] — 2026-03-31
+
+### Added
+- `crypto/compact-session.js` — Compact session encryption prototype.
+  Counter-based HKDF replaces random nonce+salt, reducing encryption
+  overhead from 76 to 32 bytes (-58%). Encrypted "Hello" drops from
+  18 to 9 shares on VS3-Monero.
+- `crypto/test-compact-session.js` — 16 unit tests for compact session
+  (roundtrip, counter, tamper detection, replay protection, out-of-order).
+
 ## [1.0.1] — 2026-03-31
 
 ### Fixed (Specification)
