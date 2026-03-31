@@ -16,7 +16,8 @@ This repository contains protocol specifications, a design paper, and a referenc
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Stratum steganographic embedding (VS1/VS2/VS3) | **Implemented and tested** | Core encoder/decoder, all 3 versions |
+| Stratum steganographic embedding (VS1/VS3-Monero) | **Implemented and tested** | Core encoder/decoder in reference impl |
+| Stratum steganographic embedding (VS2 Bitcoin-style) | **Specified; demonstrated in pool demo proxy** | Encoding via extranonce2; not in reference impl |
 | E2E encryption (X25519 + AES-256-GCM) | **Implemented and tested** | Session and one-shot modes, replay protection |
 | Mining Gate (PoW-gated access) | **Implemented and tested** | State machine, adaptive threshold |
 | PNG LSB channel (VS1) | **Archived** | Proof-of-concept only; superseded by Stratum channel |
@@ -31,7 +32,7 @@ This repository contains protocol specifications, a design paper, and a referenc
 | Protocol | Version | Description | Status |
 |----------|---------|-------------|--------|
 | [Visual Stratum 1](protocols/vs1/) | 1.0 | PNG LSB steganography over HTTPS | Archived |
-| [Visual Stratum 2](protocols/vs2/) | 2.0 | Mining Gate + Stratum embedding | Implemented |
+| [Visual Stratum 2](protocols/vs2/) | 2.0 | Mining Gate + Stratum embedding | Specified; demonstrated in pool demo proxy |
 | [Visual Stratum 3](protocols/vs3/) | 3.0 | Multi-channel adaptive transport | Partially implemented (Stratum channel only) |
 | [Falo](protocols/falo/) | 0.1 | Anonymous coordination via ZK proofs | Design phase |
 

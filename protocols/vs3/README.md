@@ -193,6 +193,63 @@ Plaintext → LZ4 Compress → AES-256-GCM Encrypt → Fragment → Send
 
 LZ4 header magic: `0x4C 0x5A 0x34 0x01` — used by receiver to detect compressed payloads.
 
+## Implementation Status
+
+| Component | Reference Impl | Pool Demo | Test Vectors | Status |
+|-----------|---------------|-----------|--------------|--------|
+| VS3-Monero (5 B/share, ghost shares) | Yes | Yes | Yes | Implemented |
+| VS3-Generic (7 B/share, Bitcoin-style) | No | No | Yes | Specified |
+| Multi-channel (WS, HTTP/2) | No | No | N/A | Specified |
+| Adaptive modes (ANON/BALANCED/SPEED) | No | No | N/A | Specified |
+| LZ4 compression | No | No | N/A | Specified |
+| Timing decorrelation | No | No | N/A | Specified |
+| High-bandwidth profiles (BURST/GHOST/TURBO) | No | No | N/A | Specified |
+
+Components marked "Specified" are fully described in this document and the
+design paper, with test vectors where applicable. Implementation is planned
+for a future release.
+
+## Pool Configuration: ghostDiffMax
+
+VS3 ghost shares require a pool-side configuration parameter `ghostDiffMax`.
+Shares with difficulty <= `ghostDiffMax` are treated as ghost shares (VS3 data
+carriers) rather than mining contributions.
+
+Recommended default: `ghostDiffMax = 1` (minimum difficulty). Ghost shares at
+difficulty 1 require negligible computational effort, ensuring that bandwidth
+is not constrained by PoW requirements.
+
+Pool detection logic (pseudocode):
+
+```
+if share.difficulty > ghostDiffMax:
+    process as regular mining share
+elif share.nonce starts with 0xAA:
+    process as VS3-Monero ghost share (5 B/share)
+elif share has extranonce2 field:
+    process as VS3-Generic ghost share (7 B/share)
+```
+
+## Implementation Limits
+
+The reference implementation enforces the following safety limits:
+
+| Parameter | Value | Rationale |
+|-----------|-------|-----------|
+| MAX_PENDING_MESSAGES | 1,000 | Caps in-flight reassembly state to prevent memory exhaustion |
+| MESSAGE_TIMEOUT_MS | 300,000 (5 min) | Incomplete messages older than 5 minutes are discarded |
+| MAX_COMPLETED_MESSAGES | 500 | Sliding window for deduplication and replay detection |
+| MAX_TOTAL_FRAGMENTS | 50 | Caps message size at ~6,400 bytes (50 x 128 bytes/fragment) |
+
+These values are recommendations. Implementations MAY adjust them based on
+deployment constraints, but SHOULD NOT remove them entirely. Removing reassembly
+limits creates a denial-of-service vector: an attacker could send unbounded
+incomplete fragments to exhaust receiver memory.
+
+Implementations MUST enforce at least `MAX_PENDING_MESSAGES` and
+`MESSAGE_TIMEOUT_MS` to bound memory usage. Implementations SHOULD log
+discarded messages for operational monitoring.
+
 ## Additional Resources
 
 - Full protocol specification: see `papers/visual-stratum/paper.md` (Sections 3.3 and 6)

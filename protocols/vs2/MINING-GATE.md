@@ -66,6 +66,15 @@ The threshold is **adaptive** — it adjusts to each miner's historical rate, no
 | Wallet spoofing | Session cryptographically bound to Stratum connection |
 | Predicting checks | Check interval is random (1-3 min), unpredictable |
 
+### Supported PoW Algorithms
+
+Mining Gate is algorithm-agnostic: it verifies that each submitted share meets
+the pool's current difficulty target, regardless of the underlying hash function.
+It has been tested with RandomX (Monero) and SHA-256d (Bitcoin).
+
+The gate operates on Stratum-reported difficulty, not raw hash values. Any chain
+whose Stratum implementation reports valid difficulty is compatible.
+
 ## Economic Analysis
 
 Mining Gate creates an inherent **cost per message**:
