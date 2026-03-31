@@ -117,6 +117,7 @@ A reference implementation in Node.js is provided in [`reference-impl/`](referen
 - Steganographic encoder/decoder (VS1/VS2/VS3 Stratum embedding)
 - E2E encryption (X25519 + AES-256-GCM + HKDF + replay protection)
 - Mining Gate verification (PoW-gated access control)
+- Compact session encryption (prototype) — counter-based HKDF, 32-byte overhead vs 76-byte standard (-58%)
 - Test suite with regression tests (`node test.js` — no external dependencies)
 
 **Not included in reference implementation** (specified in paper, planned for a future release):
