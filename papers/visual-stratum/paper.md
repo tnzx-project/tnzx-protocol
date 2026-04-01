@@ -894,6 +894,109 @@ Ghost shares remain detectable by an adversary who parses full Stratum traffic a
 
 Analysis complete. Spec update and implementation pending.
 
+## Appendix E: Graduated Risk Model — Miner-Sovereign Channel Selection
+
+### E.1 Design Principle
+
+Visual Stratum's defining property is that **miners are never exposed to risk by default**. The protocol offers a spectrum of communication channels with increasing bandwidth and decreasing steganographic strength. The miner explicitly opts into each level; no level activates without consent, and each level is shielded by the one below it.
+
+This contrasts with systems where the user must trust the relay, the server, or the network by default. In Visual Stratum, trust is introduced incrementally, by choice, and only after a secure foundation has been established via steganographic channels that require no trust at all.
+
+### E.2 Risk Levels
+
+```
+Level 0 — SILENT (default)
+  The miner mines normally. No communication channel exists.
+  No extra traffic, no metadata, no exposure.
+  Risk: zero. Indistinguishable from any miner.
+
+Level 1 — INVISIBLE (V1, explicit opt-in)
+  1 byte per share, embedded in nonce LSB of real PoW-valid shares.
+  The share passes full proof-of-work validation.
+  No observer — including the pool — can distinguish a V1 share
+  from a normal share without the session key.
+  Risk: negligible. Requires cryptanalysis of nonce distribution.
+
+Level 2 — PLAUSIBLE (ghost shares, explicit opt-in)
+  5 bytes per share via sub-difficulty submissions with HMAC sentinel
+  (Appendix D). Ghost shares do not pass PoW validation, but are
+  statistically plausible: difficulty misconfiguration, stale shares,
+  and hardware errors produce identical traffic patterns.
+  Risk: low. Detectable only by full Stratum parsing + PoW verification.
+
+Level 3 — SHIELDED (WebSocket/HTTP2, only after stego bootstrap)
+  High-bandwidth channels that are not steganographic.
+  Made acceptable because:
+    (a) bootstrapped via Level 1/2 — no DNS lookup, no IP of relay
+        exposed in cleartext traffic,
+    (b) traffic shaped with padding and timing decorrelation,
+    (c) relay address delivered encrypted via the stego layer.
+  Risk: moderate. The channel itself is visible, but its existence
+  and destination were established via invisible means.
+```
+
+Each level is a strict prerequisite for the next. Level 3 cannot activate without a Level 1 or 2 bootstrap. There is no configuration, command-line flag, or UI shortcut that bypasses this ordering.
+
+### E.3 Zero-Bootstrap Key Exchange via Wallet Identity
+
+Monero wallet addresses contain ed25519 public keys (spend key and view key). These can be converted to X25519 public keys via standard birational mapping (RFC 7748). When Alice knows Bob's wallet address, both parties can derive a shared secret without any message exchange:
+
+```
+session_key = HKDF-SHA256(
+  X25519(my_spend_privkey, ed25519_to_x25519(other_spend_pubkey)),
+  "tnzx-session-v1",
+  32
+)
+```
+
+This eliminates the key exchange phase entirely. No bytes are spent on bootstrap. The session key is available from the moment both wallets are known.
+
+**Forward secrecy** is added at the first message: the sender includes a 32-byte ephemeral X25519 public key in the payload. The recipient derives a new ratchet key. Cost: 32 bytes once, transmitted via V1 (32 real shares). Subsequent messages use the ratchet key chain.
+
+### E.4 Channel Cost Analysis
+
+Payload: "ciao" (4 bytes).
+
+| Component | Bytes |
+|-----------|-------|
+| VS3 frame header | 8 |
+| ChaPoly tag (truncated to 8B, sufficient for short messages) | 8 |
+| Payload | 4 |
+| **Total** | **20 bytes** |
+
+| Channel | Shares needed | Time (1 share/30s) | Time (1 share/2s) |
+|---------|---------------|--------------------|--------------------|
+| V1 (real shares) | 20 | ~10 min | ~40 sec |
+| V3 (ghost, 5B/share) | 4 | ~2 min | ~8 sec |
+| WebSocket | 1 RTT | instant | instant |
+
+The V1 channel is free — no extra traffic. Ghost shares cost additional bandwidth. WebSocket requires Level 1/2 bootstrap. The miner chooses based on urgency and acceptable risk.
+
+### E.5 Routing Token Opacity
+
+When using a routed channel (Level 2 or 3), the proxy needs a destination identifier. Exposing the recipient's wallet address to the proxy reveals metadata.
+
+Instead, Alice and Bob derive an opaque routing token from their session key:
+
+```
+token_n = HMAC-SHA256(session_key, "route" || n)[0..15]
+```
+
+The proxy routes by token. It cannot map tokens to wallets without the session key. Token rotation (incrementing `n`) is free — both sides compute independently.
+
+For Level 1 (V1 dumb pipe), no token is needed. The proxy broadcasts all share metadata; recipients scan and extract locally. The proxy does not know a message exists.
+
+### E.6 Summary of Trust Requirements
+
+| Level | Proxy sees content | Proxy sees metadata | Trust required |
+|-------|-------------------|--------------------|--------------------|
+| 0 (Silent) | — | — | None |
+| 1 (V1 dumb pipe) | No | No | **None** |
+| 2 (Ghost, opaque token) | No (E2E) | Token only (not wallet) | **Minimal** |
+| 3 (WS/HTTP2, shielded) | No (E2E) | Relay IP (established via stego) | **Moderate** |
+
+The miner's risk is always proportional to their explicit choice. The default is zero.
+
 ---
 
 *End of paper.*
