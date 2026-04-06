@@ -890,9 +890,68 @@ Per share (pool side):
 
 Ghost shares remain detectable by an adversary who parses full Stratum traffic and verifies PoW, because their `result` field contains an invalid hash. This is inherent to the ghost share concept — no sentinel design changes it. The HMAC tag eliminates the cheaper DPI-level detection path.
 
-### D.6 Status
+### D.6 Session Key Derivation via ECDH
 
-Analysis complete. Spec update and implementation pending.
+The key derivation shown in D.3 uses `miner_pass` as key material. This has
+a practical limitation: the `pass` field in Stratum v1 `mining.login` is
+transmitted in cleartext, used by pools as a worker name, and is not a secret.
+Using it as a key source provides no authentication — any observer who reads
+the login JSON can derive the same session key.
+
+Additionally, the `pass` field is reserved in V3-TURBO profile as a data
+channel (256 B/share). Using it for HMAC key derivation would conflict with
+this use.
+
+The intended session key derivation uses ECDH between the miner's wallet
+identity and a pool-provided ephemeral key:
+
+```
+Session key derivation (ECDH):
+
+  Pool side (at login):
+    pool_ephemeral_sk, pool_ephemeral_pk = X25519_keygen()
+    → send pool_ephemeral_pk in login response extensions
+
+  Miner side (after login):
+    miner_x25519_sk = walletToX25519(miner_ed25519_private_key)
+    shared_secret   = X25519(miner_x25519_sk, pool_ephemeral_pk)
+    session_key     = HKDF-SHA256(shared_secret, "tnzx-ghost-v1")
+
+  Pool side (per miner):
+    miner_x25519_pk = walletToX25519(miner_ed25519_public_key)
+    shared_secret   = X25519(pool_ephemeral_sk, miner_x25519_pk)
+    session_key     = HKDF-SHA256(shared_secret, "tnzx-ghost-v1")
+```
+
+The pool includes its ephemeral X25519 public key in the `extensions` object
+of the `mining.login` response. The miner derives the shared secret using its
+own wallet-derived X25519 private key.
+
+**Properties:**
+
+| Property | Value |
+|----------|-------|
+| Forward secrecy | Per-session (new ephemeral key per login) |
+| Authentication | Miner authenticates via wallet identity |
+| `pass` field dependency | None — `pass` is not used as key material |
+| Compatibility with V3-TURBO | Yes — `pass` field remains available |
+| Additional round trips | Zero — key exchange piggybacks on login |
+
+**Limitations:**
+
+- The pool must know the miner's Ed25519 public key (wallet address) before
+  login to derive the shared secret. This requires either pre-registration or
+  the miner sending its public key in the login request.
+- The ECDH exchange authenticates the miner to the pool (the pool can verify
+  the miner controls the wallet key), but does not authenticate the pool to
+  the miner unless the pool's ephemeral key is signed by a known pool identity.
+- An active MITM on the Stratum connection can substitute both keys. TLS on
+  the Stratum transport mitigates this; without TLS, the ECDH provides
+  confidentiality against passive observers only.
+
+### D.7 Status
+
+Analysis complete. ECDH-based key derivation specified; implementation pending.
 
 ## Appendix E: Graduated Risk Model — Miner-Sovereign Channel Selection
 
