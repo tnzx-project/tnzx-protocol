@@ -98,7 +98,12 @@ class CompactSession {
     const ciphertext = data.slice(COUNTER_LENGTH + IV_LENGTH, tagStart);
     const tag = data.slice(tagStart);
 
-    // Replay protection
+    // Replay protection: reject duplicates AND counters that have
+    // fallen out of the sliding window (pruned from the Set).
+    const WINDOW_SIZE = 1000;
+    if (this.maxReceivedCounter >= WINDOW_SIZE && counter <= this.maxReceivedCounter - WINDOW_SIZE) {
+      throw new Error('Replay detected — counter too old');
+    }
     if (this.receivedCounters.has(counter)) {
       throw new Error('Replay detected — duplicate counter');
     }

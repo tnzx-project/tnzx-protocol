@@ -181,7 +181,7 @@ class E2ECrypto {
    * @returns {Buffer} Decrypted plaintext
    */
   decrypt(encryptedData, senderId) {
-    const minLen = NONCE_LENGTH + SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH + 1;
+    const minLen = NONCE_LENGTH + SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH;
     if (encryptedData.length < minLen) throw new Error('Data too short');
 
     const session = this.sessionKeys.get(senderId);
@@ -274,7 +274,7 @@ function _checkOneShotNonce(nonce) {
  * @returns {Buffer} Decrypted plaintext
  */
 function decryptOneShot(encryptedData, privateKey) {
-  const minLen = NONCE_LENGTH + 32 + SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH + 1;
+  const minLen = NONCE_LENGTH + 32 + SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH;
   if (encryptedData.length < minLen) throw new Error('Data too short');
 
   let off = 0;

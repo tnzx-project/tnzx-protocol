@@ -530,6 +530,78 @@ test('FIX #5: decryptOneShot rejects replay of same ciphertext', () => {
 });
 
 // ============================================
+// REGRESSION: Critical fixes (S23 audit)
+// ============================================
+
+console.log('\n── Regression: S23 critical fixes ──');
+
+test('FIX #6: VS2 test vector matches nibble-split encoding', () => {
+  const encoder = new StegoEncoder();
+  const vec = require('../test-vectors/vs2-vectors.json');
+  const embed = vec.stratum_embedding[0];
+
+  const result = encoder.embedBytesV2(
+    embed.nonce_hex,
+    embed.extranonce2_hex,
+    embed.data_bytes
+  );
+
+  assert.strictEqual(result.nonce, embed.expected_nonce,
+    `Nonce mismatch: got ${result.nonce}, expected ${embed.expected_nonce}`);
+  assert.strictEqual(result.extranonce2, embed.expected_extranonce2,
+    `Extranonce2 mismatch: got ${result.extranonce2}, expected ${embed.expected_extranonce2}`);
+});
+
+test('FIX #7: CompactSession rejects replay after sliding window pruning', () => {
+  const { CompactSession } = require('./crypto/compact-session');
+  const secret = crypto.randomBytes(32);
+  const alice = new CompactSession(secret);
+  const bob = new CompactSession(secret);
+
+  // Capture ciphertext at counter=0
+  const ct0 = alice.encrypt('message zero');
+  bob.decrypt(ct0); // Legitimate decryption
+
+  // Send 1100+ messages to push counter 0 out of the window
+  for (let i = 1; i <= 1100; i++) {
+    const ct = alice.encrypt(`msg ${i}`);
+    bob.decrypt(ct);
+  }
+
+  // Replay of counter=0 must be rejected
+  assert.throws(
+    () => bob.decrypt(ct0),
+    /counter too old/,
+    'Replay of pruned counter should be rejected'
+  );
+});
+
+test('FIX #8: E2ECrypto encrypts and decrypts empty plaintext', () => {
+  const alice = new E2ECrypto();
+  const bob = new E2ECrypto();
+  alice.generateKeyPair();
+  bob.generateKeyPair();
+
+  alice.establishSession('bob', bob.getPublicKey());
+  bob.establishSession('alice', alice.getPublicKey());
+
+  const encrypted = alice.encrypt(Buffer.alloc(0), 'bob');
+  const decrypted = bob.decrypt(encrypted, 'alice');
+
+  assert.strictEqual(decrypted.length, 0, 'Decrypted empty plaintext should have length 0');
+});
+
+test('FIX #8: decryptOneShot handles empty plaintext', () => {
+  const recipient = new E2ECrypto();
+  recipient.generateKeyPair();
+
+  const encrypted = encryptOneShot(Buffer.alloc(0), recipient.getPublicKey());
+  const decrypted = decryptOneShot(encrypted, recipient.keyPair.privateKey);
+
+  assert.strictEqual(decrypted.length, 0, 'One-shot empty plaintext should decrypt to 0 bytes');
+});
+
+// ============================================
 // RESULTS
 // ============================================
 
