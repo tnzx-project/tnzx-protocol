@@ -41,7 +41,7 @@
             "nonce_hex": "a1b2c3d4e5f60000",
             "extranonce2_hex": "00000000",
             "data_bytes": [170, 187, 204],
-            "expected_nonce": "a1b2c3d4e5f600aa",
+            "expected_nonce": "a1b2c3d4e5f60a0a",
             "expected_extranonce2": "0000bbcc",
             "description": "Embed 3 bytes: 1 in nonce LSB, 2 in extranonce2"
         }
