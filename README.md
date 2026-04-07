@@ -18,7 +18,7 @@ This repository contains protocol specifications, a design paper, and a referenc
 |-----------|--------|-------|
 | Stratum steganographic embedding (VS1/VS3-Monero) | **Implemented and tested** | Core encoder/decoder in reference impl |
 | Stratum steganographic embedding (VS2 Bitcoin-style) | **Specified; demonstrated in pool demo proxy** | Encoding via extranonce2; not in reference impl |
-| E2E encryption (X25519 + AES-256-GCM) | **Implemented and tested** | Session and one-shot modes, replay protection |
+| E2E encryption (X25519 + XChaCha20-Poly1305) | **Implemented and tested** | Session and one-shot modes, replay protection |
 | Mining Gate (PoW-gated access) | **Implemented and tested** | State machine, adaptive threshold |
 | PNG LSB channel (VS1) | **Archived** | Proof-of-concept only; superseded by Stratum channel |
 | WebSocket / HTTP/2 channels | **Specified** | Design complete, not in reference impl |
@@ -93,7 +93,7 @@ A design for anonymous group coordination using zero-knowledge proofs, ring sign
 
 | Property | Mechanism | Status |
 |----------|-----------|--------|
-| **Confidentiality** | AES-256-GCM | Implemented, tested |
+| **Confidentiality** | XChaCha20-Poly1305 | Implemented, tested |
 | **Key Exchange** | X25519 ECDH with ephemeral keys | Implemented, tested |
 | **Forward Secrecy** | New keypair per message (one-shot mode) | Implemented, tested |
 | **Replay Protection** | Nonce tracking with 5-minute TTL | Implemented, tested |
@@ -115,10 +115,10 @@ A design for anonymous group coordination using zero-knowledge proofs, ring sign
 A reference implementation in Node.js is provided in [`reference-impl/`](reference-impl/). It includes:
 
 - Steganographic encoder/decoder (VS1/VS2/VS3 Stratum embedding)
-- E2E encryption (X25519 + AES-256-GCM + HKDF + replay protection)
+- E2E encryption (X25519 + XChaCha20-Poly1305 + HKDF + replay protection)
 - Mining Gate verification (PoW-gated access control)
-- Compact session encryption (prototype) — counter-based HKDF, 32-byte overhead vs 76-byte standard (-58%)
-- Test suite with regression tests (`node test.js` — no external dependencies)
+- Compact session encryption (prototype) — counter-based HKDF with ChaCha20-Poly1305, 32-byte overhead vs 88-byte standard (-64%)
+- Test suite: 65 tests across 2 suites (`node test.js` + `node crypto/test-xchacha20.js` — no external dependencies)
 
 **Not included in reference implementation** (specified in paper, planned for a future release):
 - PNG LSB steganographic channel

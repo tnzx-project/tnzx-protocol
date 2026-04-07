@@ -6,7 +6,7 @@ Standalone Node.js implementation of the Visual Stratum protocol suite.
 
 | Module | Description | Dependencies |
 |--------|-------------|-------------|
-| `crypto/` | E2E encryption: X25519 ECDH, AES-256-GCM, HKDF, replay protection | Node.js `crypto` only |
+| `crypto/` | E2E encryption: X25519 ECDH, XChaCha20-Poly1305, HKDF, replay protection | Node.js `crypto` only |
 | `stego-core/` | Steganographic encoder/decoder for Stratum share embedding | Node.js `crypto` only |
 | `mining-gate/` | Proof-of-work gated access control (Mining Gate) | Node.js `crypto` only |
 

@@ -38,4 +38,4 @@ All implementations in this repository use:
 - `crypto.getRandomValues()` or `crypto.randomBytes()` for randomness (NEVER `Math.random()`)
 - Constant-time comparison for all secret values
 - Audited cryptographic libraries where available
-- NIST/IETF standard algorithms (AES-256-GCM, X25519, Ed25519, HKDF-SHA256)
+- IETF standard algorithms (XChaCha20-Poly1305 / ChaCha20-Poly1305, X25519, Ed25519, HKDF-SHA256)
