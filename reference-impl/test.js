@@ -303,7 +303,7 @@ test('Decryption fails with wrong key', () => {
 
   const encrypted = alice.encrypt('Secret', 'bob');
 
-  // Eve tries to decrypt — wrong shared secret triggers GCM auth failure
+  // Eve tries to decrypt — wrong shared secret triggers Poly1305 auth failure
   eve.establishSession('alice', alice.getPublicKey());
   assert.throws(() => eve.decrypt(encrypted, 'alice'), /Decryption failed/);
 });

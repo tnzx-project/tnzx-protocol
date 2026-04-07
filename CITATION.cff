@@ -7,8 +7,8 @@ authors:
     email: "tnzx@proton.me"
 repository-code: "https://github.com/tnzx-project/tnzx-protocol"
 license: LGPL-2.1
-version: "1.0.1"
-date-released: "2026-03-31"
+version: "1.1.0-draft01"
+date-released: "2026-04-07"
 keywords:
   - steganography
   - cryptocurrency
@@ -27,4 +27,4 @@ abstract: >
   embedding. Includes Visual Stratum (steganographic embedding in Stratum
   mining shares), Mining Gate (proof-of-work gated access control), and Falo
   (anonymous group coordination via zero-knowledge proofs).
-notes: "Reference implementation v1.0.1 — implements VS3 protocol (v3.0.0). See repository for full protocol version history."
+notes: "Reference implementation v1.1.0-draft01 — implements VS3 protocol (v3.0.0). See repository for full protocol version history."

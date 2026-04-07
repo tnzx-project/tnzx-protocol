@@ -9,14 +9,14 @@ Not all described capabilities are currently available. The following table summ
 | Capability | Status | Notes |
 |-----------|--------|-------|
 | Text messaging via Stratum channel | **Implemented** | 5 B/share (Monero, with tnzxminer) · 7 B/share (Generic), high stealth |
-| E2E encryption | **Implemented** | AES-256-GCM, X25519, replay protection |
+| E2E encryption | **Implemented** | XChaCha20-Poly1305, X25519, replay protection |
 | Mining Gate access control | **Implemented** | PoW-gated, adaptive threshold |
 | PNG steganographic download | Specified | Not in published reference implementation |
 | WebSocket / HTTP/2 channels | Specified | Not in published reference implementation |
 | File transfer (SPEED mode) | Specified | Requires multi-channel transport |
 | Voice communication | Theoretical | Bandwidth may suffice; not implemented or tested |
 | Falo anonymous coordination | Design phase | Identity layer prototyped; ZK/ring sigs not implemented |
-| LoRa mesh fallback | Design phase | Not implemented |
+| LoRa mesh fallback | Research idea | Not designed or implemented |
 
 ## Primary Use Case: Communication Under Surveillance and Censorship
 
@@ -51,9 +51,9 @@ Organized groups face infiltration as a primary attack vector. A single compromi
 
 ### Populations Under Internet Blackout
 
-The LoRa mesh networking fallback (Falo design) targets scenarios where internet access is fully cut.
+LoRa mesh networking has been considered as a potential fallback for scenarios where internet access is fully cut, but no design work has been done.
 
-*Status: Design phase. Not implemented.*
+*Status: Research idea only. Not designed or implemented.*
 
 ## Secondary Use Case: Infrastructure for Organizations
 

@@ -345,15 +345,15 @@ $$u = \frac{1 + y}{1 - y} \mod p, \quad p = 2^{255} - 19$$
 
 **Key derivation.** HKDF-SHA256 [18] derives per-message encryption keys:
 
-$$K = \text{HKDF}(\text{IKM} = shared\_secret,\ \text{salt} = \text{random}(32),\ \text{info} = \texttt{"tnzx-stego-e2e-v1"},\ \text{len} = 32)$$
+$$K = \text{HKDF}(\text{IKM} = shared\_secret,\ \text{salt} = \text{random}(32),\ \text{info} = \texttt{"tnzx-e2e-v3"},\ \text{len} = 32)$$
 
 A fresh random salt per message ensures unique keys even for the same shared secret.
 
-**Authenticated encryption.** AES-256-GCM [19] with:
+**Authenticated encryption.** XChaCha20-Poly1305 (RFC 8439 + HChaCha20) with:
 - Key: 256 bits (from HKDF)
-- IV: 96 bits (random per message)
-- Authentication tag: 128 bits
-- Additional Authenticated Data (AAD): protocol version + message nonce
+- Nonce: 192 bits (24 bytes, random per message — safe random generation, no collision risk)
+- Authentication tag: 128 bits (Poly1305)
+- Additional Authenticated Data (AAD): protocol version + replay ID
 
 ### 5.3 Perfect Forward Secrecy
 
@@ -444,13 +444,13 @@ We consider four adversary classes:
 
 The undetectability of the Stratum embedding follows from an information-theoretic argument that does not depend on empirical steganalysis.
 
-Mining nonces are uniformly random 32-bit values. The LSB of a random value is uniformly distributed. VS3 replaces LSBs with payload bytes, which — being AES-256-GCM encrypted — are also uniformly distributed. Formally:
+Mining nonces are uniformly random 32-bit values. The LSB of a random value is uniformly distributed. VS3 replaces LSBs with payload bytes, which — being XChaCha20-Poly1305 encrypted — are also uniformly distributed. Formally:
 
 For a random nonce $n \in \{0, 1\}^{32}$ and encrypted payload byte $b \in \{0, 1\}^8$:
 
 $$H(n \bmod 2^8) = H(b) = 8 \text{ bits (maximum entropy)}$$
 
-No statistical test can distinguish the modified field from an unmodified one, because both contain maximum-entropy data. This argument holds for any cipher with indistinguishability from random under chosen-plaintext attack (IND-CPA), which AES-256-GCM satisfies.
+No statistical test can distinguish the modified field from an unmodified one, because both contain maximum-entropy data. This argument holds for any cipher with indistinguishability from random under chosen-plaintext attack (IND-CPA), which XChaCha20-Poly1305 satisfies.
 
 **Caveat.** This argument holds cleanly for the **nonce** field: valid mining nonces are the result of a search over a cryptographically random hash function, and their distribution over the nonce space is approximately uniform. An observer cannot distinguish a nonce whose low nibbles were constrained to a payload byte from one found without constraints, because both produce maximum-entropy values in those positions.
 
@@ -489,8 +489,8 @@ VS1 chart images are procedurally generated with controlled noise and pseudo-ran
 
 | Property | Mechanism | Strength |
 |----------|-----------|----------|
-| Confidentiality | AES-256-GCM | 256-bit key, 2^256 brute force |
-| Integrity | GCM authentication tag | 128-bit tag |
+| Confidentiality | XChaCha20-Poly1305 | 256-bit key, 2^256 brute force |
+| Integrity | Poly1305 authentication tag | 128-bit tag |
 | Authentication | ECDH key binding | Shared secret authenticates parties |
 | Forward secrecy | Ephemeral X25519 keys | Per-message keypair, discarded after use |
 | Replay protection | 128-bit nonce + 5-min TTL cache | Duplicate nonces rejected |
@@ -521,20 +521,21 @@ The reference implementation comprises three core modules in Node.js:
 | Module | Function |
 |--------|----------|
 | `stego-core/` | V1/V2/V3 encoder, decoder, frame processing |
-| `crypto/` | E2ECrypto, X25519, AES-256-GCM, HKDF, replay protection |
+| `crypto/` | E2ECrypto, X25519, XChaCha20-Poly1305, HKDF, replay protection |
 | `mining-gate/` | Proof-of-work gated access control |
 
 ### 8.2 Test Coverage
 
-*Published reference implementation test coverage (`reference-impl/test.js`):*
+*Published reference implementation test coverage:*
 
-| Category | Tests | Status |
-|----------|-------|--------|
-| Steganographic encoding/decoding (V1/V2/V3, framing, reassembly) | 16 | Pass |
-| Cryptographic layer (ECDH, AES-256-GCM, HKDF, replay protection) | 7 | Pass |
-| Mining Gate (state transitions, hashrate calculation, cleanup) | 6 | Pass |
-| Regression fixes (ID generation, hashrate mutation, one-shot replay) | 8 | Pass |
-| **Total published** | **37** | **All passing** |
+| Suite | Category | Tests | Status |
+|-------|----------|-------|--------|
+| `test.js` | Steganographic encoding/decoding (V1/V2/V3, framing, reassembly) | 16 | Pass |
+| `test.js` | Cryptographic layer (ECDH, XChaCha20-Poly1305, HKDF, replay protection) | 7 | Pass |
+| `test.js` | Mining Gate (state transitions, hashrate calculation, cleanup) | 6 | Pass |
+| `test.js` | Regression fixes (ID generation, hashrate mutation, one-shot replay, S23 audit) | 12 | Pass |
+| `crypto/test-xchacha20.js` | XChaCha20-Poly1305 (HChaCha20 RFC vector, AEAD, seal/open, AAD, edge cases) | 24 | Pass |
+| **Total published** | | **65** | **All passing** |
 
 Interoperability test vectors for V1 (full round-trip) and V2 (full round-trip) are published in `test-vectors/`. VS3 vectors cover the Stratum embedding layer (encoding only); full round-trip vectors including encryption and multi-fragment reassembly are planned for a future release.
 
@@ -545,7 +546,7 @@ Measured on Node.js 18, Intel i7-10700K:
 | Operation | Time | Notes |
 |-----------|------|-------|
 | X25519 ECDH | ~0.1 ms | Native crypto module |
-| AES-256-GCM encrypt (1 KB) | ~0.01 ms | Hardware AES-NI |
+| XChaCha20-Poly1305 encrypt (1 KB) | ~0.02 ms | Native crypto module (constant-time in software) |
 | HKDF-SHA256 | ~0.05 ms | Per derivation |
 | LZ4 compress (1 KB) | ~0.1 ms | Pure JS |
 | Ed25519 → X25519 conversion | ~0.2 ms | BigInt arithmetic |
@@ -591,7 +592,15 @@ We believe researchers and tool developers have an obligation to honestly commun
 - Physical surveillance
 - Device compromise (malware, hardware backdoors)
 - Coercion or legal compulsion to reveal keys
-- Quantum computing (future concern; post-quantum key exchange is planned)
+- Quantum computing (future concern — see below)
+
+**Post-quantum considerations.** The symmetric layer (XChaCha20-Poly1305, 256-bit keys) provides 128-bit post-quantum security via Grover's bound — sufficient for the foreseeable future. The vulnerability is in key exchange: X25519 ECDH is broken by a cryptographically relevant quantum computer (CRQC), enabling harvest-now-decrypt-later attacks on recorded traffic.
+
+The architectural constraint is that PQC key exchange algorithms (e.g., ML-KEM) produce ciphertexts with lattice structure distinguishable from uniform randomness. Embedding PQC material in the steganographic channel (L1/L2) would compromise the entropy-equivalence property (Section 7.2) that provides undetectability. Therefore, any future PQC key exchange must operate on a non-steganographic channel (L3 or out-of-band), with the final session key derived as `KDF(ecdh_secret || pqc_secret)` — secure if at least one primitive holds.
+
+Design principle: the protocol must degrade gracefully to classical-only ECDH when the PQC channel is unavailable, rather than failing closed. For target users under active censorship, a channel that functions today with classical security is preferable to no channel at all.
+
+This is an area of active design; a formal specification is planned for a future draft.
 
 ---
 
@@ -603,7 +612,7 @@ The key insight is that mining traffic is not merely a disguise — it is genuin
 
 Mining Gate extends proof-of-work from a one-time cost (hashcash) to a sustained commitment, solving spam, Sybil attacks, and infrastructure funding simultaneously.
 
-Future work includes formal verification of the protocol, post-quantum key exchange (CRYSTALS-Kyber), satellite and LoRa transport for connectivity-deprived regions, cross-pool federation for message routing across independent mining pools, and independent third-party security audit.
+Future work includes formal verification of the protocol, post-quantum key exchange via hybrid construction (classical ECDH combined with a PQC KEM on a non-steganographic channel — see Section 9.3), cross-pool federation for message routing across independent mining pools, and independent third-party security audit.
 
 We are also developing Falo, an anonymous coordination system built on VS2 transport that uses zero-knowledge membership proofs, ring signatures, and a novel "Proof of Time" anti-Sybil mechanism based on sustained mining history rather than financial stake. A design document is available in this repository. Falo explores an under-examined question in privacy tool design: the psychology of anonymous organizing — how technical protection affects the human courage to coordinate (see Falo design document, Section 10).
 
@@ -647,7 +656,7 @@ We are also developing Falo, an anonymous coordination system built on VS2 trans
 
 [18] Krawczyk, H. and Eronen, P. "HMAC-based Extract-and-Expand Key Derivation Function (HKDF)." RFC 5869, 2010.
 
-[19] Dworkin, M. "Recommendation for Block Cipher Modes of Operation: Galois/Counter Mode (GCM)." NIST SP 800-38D, 2007.
+[19] Nir, Y. and Langley, A. "ChaCha20 and Poly1305 for IETF Protocols." RFC 8439, 2018.
 
 [20] Collet, Y. "LZ4 — Extremely Fast Compression." 2011.
 
@@ -685,10 +694,10 @@ MSG_HASHCASH         = 0x06
 
 // Crypto constants
 KEY_LENGTH           = 32     // 256 bits
-IV_LENGTH            = 12     // 96 bits (GCM standard)
-AUTH_TAG_LENGTH      = 16     // 128 bits
+NONCE_LENGTH_AEAD    = 24     // 192 bits (XChaCha20-Poly1305)
+AUTH_TAG_LENGTH      = 16     // 128 bits (Poly1305)
 SALT_LENGTH          = 32     // HKDF salt
-NONCE_LENGTH         = 16     // Replay protection nonce
+REPLAY_ID_LENGTH     = 16     // Replay protection identifier
 
 // Limits
 MAX_PENDING_MESSAGES = 1000
@@ -712,19 +721,47 @@ Bob Public:    de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f
 Shared Secret: 4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742
 ```
 
-### B.2 AES-256-GCM (NIST SP 800-38D)
+### B.2 XChaCha20-Poly1305 (RFC 8439 + HChaCha20)
 
-The reference implementation uses AES-256-GCM authenticated encryption with the following parameters:
+The protocol uses XChaCha20-Poly1305 as its primary authenticated encryption algorithm for E2E communication and persistent storage. ChaCha20-Poly1305 (12-byte nonce) is used for ephemeral session-level encryption where keys rotate per-session.
 
 ```
-Algorithm:        AES-256-GCM (NIST SP 800-38D)
-Key derivation:   HKDF-SHA256 (RFC 5869), 256-bit output
-Key size:         256 bits (32 bytes)
-IV size:          96 bits (12 bytes), random per message
-Auth tag:         128 bits (16 bytes)
+Primary (E2E, storage):
+  Algorithm:        XChaCha20-Poly1305
+  Construction:     HChaCha20(key, nonce[0:16]) → subkey,
+                    ChaCha20-Poly1305(subkey, 0x00000000 || nonce[16:24], plaintext)
+  Key derivation:   HKDF-SHA256 (RFC 5869), 256-bit output
+  Key size:         256 bits (32 bytes)
+  Nonce size:       192 bits (24 bytes), random per message
+  Auth tag:         128 bits (16 bytes, Poly1305)
+
+Session (transport):
+  Algorithm:        ChaCha20-Poly1305 (RFC 8439)
+  Nonce size:       96 bits (12 bytes)
+  Usage:            Ephemeral session keys, rotate per connection
 ```
 
-For standard interoperability test vectors, see NIST SP 800-38D Appendix B, Test Case 4 (256-bit key). The reference implementation passes these vectors via Node.js `crypto.createCipheriv('aes-256-gcm', ...)`.
+**Rationale for cipher selection.**
+
+1. **Constant-time in software.** ChaCha20 is a pure ARX (add-rotate-XOR) cipher. No lookup tables, no key-dependent memory access patterns. Secure on all hardware without AES-NI.
+
+2. **Misuse-resistant nonce.** The 192-bit nonce of XChaCha20 allows safe random nonce generation without collision risk, critical in multichain scenarios with many independent clients.
+
+3. **Monero consistency.** The Bernstein cryptographic family (Curve25519, Ed25519, ChaCha20, Poly1305) runs through the entire protocol, from key exchange to encryption.
+
+4. **Multichain readiness.** The symmetric cipher operates after key exchange and is orthogonal to the identity chain. Any blockchain can bridge to TNZX messenger identity via chain-specific key derivation, while the encryption layer remains unchanged.
+
+5. **Zero external dependencies.** On Node.js, XChaCha20 is implemented as native `chacha20-poly1305` + vendored HChaCha20 (~40 lines, from @noble/ciphers by Paul Miller, MIT, audit Cure53 2023). On Rust, the `chacha20poly1305` crate provides native support.
+
+For interoperability test vectors, see RFC 8439 Section 2.8.2 (ChaCha20-Poly1305) and draft-irtf-cfrg-xchacha Section 2.2.1 (HChaCha20).
+
+**Domain separation strings.** All HKDF info strings and AAD prefixes are versioned and must match exactly across implementations. A mismatch causes silent interoperability failure — both sides encrypt and decrypt successfully in isolation, but cannot communicate with each other. The authoritative registry is in `reference-impl/crypto/DOMAIN-STRINGS.md`.
+
+| Context | HKDF info | AAD |
+|---------|-----------|-----|
+| Session E2E | `tnzx-e2e-v3` | `"tnzx-e2e-v3" \|\| replayId` |
+| One-shot E2E | `tnzx-e2e-v3` | `"tnzx-oneshot-v3" \|\| replayId \|\| ephPubKey` |
+| Compact session | `tnzx-compact-v1` | `"tnzx-compact-v1" \|\| counter(4B)` |
 
 ### B.3 VS3 Stratum Embedding (Monero Stratum, 5 bytes/share)
 
@@ -842,8 +879,13 @@ Stratum v2 is Bitcoin-only; no Monero implementation exists.
 
 ### D.3 Chosen Approach: HMAC Tag on Partial Nonce
 
+> **Note:** The key derivation shown below uses `miner_pass` for simplicity
+> of exposition. The `pass` field is not a secret (see D.6 for analysis).
+> The intended production key derivation uses ECDH between the miner's
+> wallet identity and a pool-provided ephemeral key — see Section D.6.
+
 ```
-Key derivation (once, at login):
+Key derivation (once, at login — simplified, see D.6 for ECDH variant):
   session_key = HKDF-SHA256(miner_pass, pool_salt, "tnzx-ghost-v1")
 
 Per ghost share (miner side):
@@ -874,7 +916,7 @@ Per share (pool side):
 
 **Counter-based HMAC** (`HMAC(key, job_id || seq)`): requires synchronized counter. Desyncs on rejected shares, reconnections, proxy remapping. Fragile.
 
-**Encrypted full nonce** (`AES-CTR(key, nonce[0..3])`): gains 1 extra byte (4B vs 3B payload) but requires pool to attempt decryption of every incoming share, not just ghost candidates. Viable but premature optimization.
+**Encrypted full nonce** (`ChaCha20(key, nonce[0..3])`): gains 1 extra byte (4B vs 3B payload) but requires pool to attempt decryption of every incoming share, not just ghost candidates. Viable but premature optimization.
 
 **Result-field discriminant** (`result = "00...00"`): moves the sentinel from nonce to result. Equally detectable — any observer can verify PoW validity.
 
@@ -890,9 +932,68 @@ Per share (pool side):
 
 Ghost shares remain detectable by an adversary who parses full Stratum traffic and verifies PoW, because their `result` field contains an invalid hash. This is inherent to the ghost share concept — no sentinel design changes it. The HMAC tag eliminates the cheaper DPI-level detection path.
 
-### D.6 Status
+### D.6 Session Key Derivation via ECDH
 
-Analysis complete. Spec update and implementation pending.
+The key derivation shown in D.3 uses `miner_pass` as key material. This has
+a practical limitation: the `pass` field in Stratum v1 `mining.login` is
+transmitted in cleartext, used by pools as a worker name, and is not a secret.
+Using it as a key source provides no authentication — any observer who reads
+the login JSON can derive the same session key.
+
+Additionally, the `pass` field is reserved in V3-TURBO profile as a data
+channel (256 B/share). Using it for HMAC key derivation would conflict with
+this use.
+
+The intended session key derivation uses ECDH between the miner's wallet
+identity and a pool-provided ephemeral key:
+
+```
+Session key derivation (ECDH):
+
+  Pool side (at login):
+    pool_ephemeral_sk, pool_ephemeral_pk = X25519_keygen()
+    → send pool_ephemeral_pk in login response extensions
+
+  Miner side (after login):
+    miner_x25519_sk = walletToX25519(miner_ed25519_private_key)
+    shared_secret   = X25519(miner_x25519_sk, pool_ephemeral_pk)
+    session_key     = HKDF-SHA256(shared_secret, "tnzx-ghost-v1")
+
+  Pool side (per miner):
+    miner_x25519_pk = walletToX25519(miner_ed25519_public_key)
+    shared_secret   = X25519(pool_ephemeral_sk, miner_x25519_pk)
+    session_key     = HKDF-SHA256(shared_secret, "tnzx-ghost-v1")
+```
+
+The pool includes its ephemeral X25519 public key in the `extensions` object
+of the `mining.login` response. The miner derives the shared secret using its
+own wallet-derived X25519 private key.
+
+**Properties:**
+
+| Property | Value |
+|----------|-------|
+| Forward secrecy | Per-session (new ephemeral key per login) |
+| Authentication | Miner authenticates via wallet identity |
+| `pass` field dependency | None — `pass` is not used as key material |
+| Compatibility with V3-TURBO | Yes — `pass` field remains available |
+| Additional round trips | Zero — key exchange piggybacks on login |
+
+**Limitations:**
+
+- The pool must know the miner's Ed25519 public key (wallet address) before
+  login to derive the shared secret. This requires either pre-registration or
+  the miner sending its public key in the login request.
+- The ECDH exchange authenticates the miner to the pool (the pool can verify
+  the miner controls the wallet key), but does not authenticate the pool to
+  the miner unless the pool's ephemeral key is signed by a known pool identity.
+- An active MITM on the Stratum connection can substitute both keys. TLS on
+  the Stratum transport mitigates this; without TLS, the ECDH provides
+  confidentiality against passive observers only.
+
+### D.7 Status
+
+Analysis complete. ECDH-based key derivation specified; implementation pending.
 
 ## Appendix E: Graduated Risk Model — Miner-Sovereign Channel Selection
 

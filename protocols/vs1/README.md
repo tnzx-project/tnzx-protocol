@@ -13,7 +13,7 @@ Visual Stratum 1 is the foundational steganographic protocol. It hides encrypted
 ```
 Application Layer    (Messages, Files, Commands)
         ↓
-Encryption Layer     (AES-256-GCM + X25519 ECDH + HKDF-SHA256)
+Encryption Layer     (XChaCha20-Poly1305 + X25519 ECDH + HKDF-SHA256)
         ↓
 Steganography Layer  (LSB encoding in PNG pixels)
         ↓
@@ -33,7 +33,7 @@ Transport Layer      (HTTPS, standard port 443)
 
 1. **Procedural chart generation** — Images are real mining statistics charts, not arbitrary pictures. This provides natural cover traffic.
 
-2. **AES-256-GCM authenticated encryption** — Selected over ChaCha20-Poly1305 for native Web Crypto API compatibility (`SubtleCrypto`), enabling browser-based clients without external cryptographic dependencies. On hardware without AES-NI, performance remains acceptable for VS1 payload sizes (≤ 45 KB per image). Key derivation uses HKDF-SHA256 from the X25519 shared secret.
+2. **XChaCha20-Poly1305 authenticated encryption** (RFC 8439 + HChaCha20) — Selected as the sole symmetric cipher for the entire TNZX protocol suite. XChaCha20-Poly1305 provides constant-time execution on all platforms (pure ARX construction, no lookup tables), 192-bit nonces eliminating collision risk with random nonce generation, and consistency with Monero's Bernstein-family cryptographic stack. The extended nonce is critical for multichain scenarios where multiple independent clients generate messages. Key derivation uses HKDF-SHA256 from the X25519 shared secret. Implementation: Node.js uses native `chacha20-poly1305` with vendored HChaCha20; Rust uses the `chacha20poly1305` crate.
 
 3. **Pixel permutation** — LSB insertion order is pseudo-randomly permuted using a PRNG seeded by the session key. Without the key, an attacker cannot determine which pixels carry payload.
 
