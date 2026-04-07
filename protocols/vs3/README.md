@@ -27,7 +27,7 @@ Visual Stratum 3 extends VS2 with a multi-layer transport architecture that spec
 │         Chat, Files, Voice, Marketplace, Hosting             │
 ├─────────────────────────────────────────────────────────────┤
 │                    ENCRYPTION LAYER                          │
-│         AES-256-GCM + X25519 + HKDF-SHA256                  │
+│     XChaCha20-Poly1305 + X25519 + HKDF-SHA256               │
 ├─────────────────────────────────────────────────────────────┤
 │                    TRANSPORT LAYER                           │
 │  ┌──────────┬──────────┬───────────┬──────────────────┐     │
@@ -188,10 +188,80 @@ frequency is already high.
 LZ4 compression is applied before encryption for payloads > 64 bytes:
 
 ```
-Plaintext → LZ4 Compress → AES-256-GCM Encrypt → Fragment → Send
+Plaintext → LZ4 Compress → XChaCha20-Poly1305 Encrypt → Fragment → Send
 ```
 
 LZ4 header magic: `0x4C 0x5A 0x34 0x01` — used by receiver to detect compressed payloads.
+
+## Encrypted Type Envelope
+
+All VS3 frames use `MSG_ENCRYPTED` (`0x05`) as the external type in the wire
+header. The real message type is the first byte of the encrypted payload.
+
+### Motivation
+
+Without this envelope, the pool or any intermediate proxy can inspect the
+`TYPE` byte and distinguish between chat messages, DNS queries, escrow
+operations, key exchanges, and other traffic. This leaks application-level
+metadata to infrastructure operators. The encrypted type envelope removes
+this distinguisher: the pool sees only `0x05 ENCRYPTED` for every frame,
+regardless of the actual operation.
+
+### Wire Format
+
+```
+Wire header (cleartext, visible to pool/proxy):
+┌───────┬───────┬──────────────┬─────────┬──────────┬────────────┬──────────┐
+│ MAGIC │ VER   │ TYPE = 0x05  │ MSG_ID  │ FRAG_IDX │ TOTAL_FRAG │ FRAG_LEN │
+│ 0xAA  │ 0x03  │ (ENCRYPTED)  │ 2B      │ 1B       │ 1B         │ 1B       │
+└───────┴───────┴──────────────┴─────────┴──────────┴────────────┴──────────┘
+
+Encrypted payload (decrypted by recipient):
+┌───────────┬──────────────────────────────────┐
+│ REAL_TYPE │ ...application data...           │
+│ 1 byte    │ (up to 127 bytes per fragment)   │
+└───────────┴──────────────────────────────────┘
+```
+
+### Encryption
+
+- `KEY_EXCHANGE` frames use `encryptOneShot` on the recipient's X25519
+  public key (derived from Ed25519 wallet identity via `walletToX25519`).
+- All subsequent frames use the session key established by the key exchange.
+
+### Coverage
+
+Zero exceptions. All defined message types are wrapped in the encrypted
+envelope:
+
+| Real Type | Code | Wrapped in 0x05 |
+|-----------|------|-----------------|
+| TEXT | 0x01 | Yes |
+| ACK | 0x02 | Yes |
+| PING | 0x03 | Yes |
+| KEY_EXCHANGE | 0x04 | Yes |
+| HASHCASH | 0x06 | Yes |
+
+The external header always carries `TYPE = 0x05`. The real type is never
+exposed in cleartext on the wire.
+
+### Observable Properties
+
+From the pool/proxy perspective, all VS3 traffic is a homogeneous stream of
+encrypted fragments. The pool cannot determine whether a user is chatting,
+resolving DNS, performing an escrow operation, or tunneling data. Only the
+message size (fragment count) and timing remain as potential side channels;
+these are addressed separately by timing decorrelation (see Adaptive Modes)
+and padding strategies.
+
+### Known Types
+
+Implementations MUST accept all types defined in the `MSG_TYPE` enum
+(0x01 through 0x06). An implementation that only handles a subset of
+defined types (e.g., only TEXT and ACK) will silently drop valid messages
+from peers that use the full type set. Unknown type codes (> 0x06) SHOULD
+be rejected with an appropriate error rather than silently discarded, to
+aid debugging during protocol evolution.
 
 ## Implementation Status
 
@@ -204,6 +274,7 @@ LZ4 header magic: `0x4C 0x5A 0x34 0x01` — used by receiver to detect compresse
 | LZ4 compression | No | No | N/A | Specified |
 | Timing decorrelation | No | No | N/A | Specified |
 | High-bandwidth profiles (BURST/GHOST/TURBO) | No | No | N/A | Specified |
+| Encrypted Type Envelope | No | No | N/A | Specified |
 
 Components marked "Specified" are fully described in this document and the
 design paper, with test vectors where applicable. Implementation is planned

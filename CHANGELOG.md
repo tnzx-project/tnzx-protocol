@@ -1,5 +1,41 @@
 # Changelog
 
+## [draft-01] — 2026-04-07
+
+### Changed (Cryptography)
+- **Cipher migration:** AES-256-GCM replaced by XChaCha20-Poly1305 (E2E, storage)
+  and ChaCha20-Poly1305 (session/transport). Zero external dependencies.
+- `crypto/xchacha20.js` — New: HChaCha20 vendored from @noble/ciphers (MIT,
+  Paul Miller, audit Cure53 2023) + XChaCha20-Poly1305 encrypt/decrypt/seal/open.
+- `crypto/index.js` — v2→v3: wire format `replayId(16) + salt(32) + nonce(24) + ct + tag(16)`.
+- `crypto/compact-session.js` — AES-GCM → ChaCha20-Poly1305 native (session, 12B nonce).
+- `crypto/DOMAIN-STRINGS.md` — New: authoritative registry of all HKDF info and AAD strings.
+
+### Changed (Specification)
+- **Encrypted type envelope:** All VS3 frames use `MSG_ENCRYPTED` (0x05) as external type;
+  real type encrypted inside payload. Zero exceptions. (VS3 README, paper Appendix D.6)
+- **ECDH session key:** Ghost share HMAC derived from ECDH wallet identity, not `pass` field.
+  (Paper Appendix D.6)
+- **knownTypes requirement:** Implementations MUST accept all defined MSG_TYPE codes.
+- **Post-quantum considerations:** Added to paper Section 9.3 — hybrid ECDH+PQC KEM
+  on non-steganographic channel, graceful degradation principle.
+- **Paper Section 5.2:** Fixed stale HKDF info string (`tnzx-stego-e2e-v1` → `tnzx-e2e-v3`).
+- **Paper Section 8.2:** Updated test count from 37 to 65 (41 main + 24 xchacha20).
+- **Paper Section 10:** Removed unsubstantiated satellite/LoRa claim; replaced CRYSTALS-Kyber
+  with general hybrid PQC approach.
+- **Paper Appendix D.3:** Added note clarifying `miner_pass` derivation is simplified exposition;
+  production uses ECDH (D.6).
+- **APPLICATIONS.md:** LoRa downgraded from "design phase" to "research idea".
+
+### Added (Tests)
+- `crypto/test-xchacha20.js` — 24 tests: HChaCha20 RFC vector, AEAD roundtrip,
+  authentication integrity, seal/open, AAD, edge cases, input validation.
+- 4 regression tests in `test.js` for S23 audit fixes (VS2 vector, CompactSession
+  replay window, empty plaintext session and one-shot).
+
+### Verified
+- All 65 reference implementation tests pass.
+
 ## [1.0.2] — 2026-03-31
 
 ### Added
