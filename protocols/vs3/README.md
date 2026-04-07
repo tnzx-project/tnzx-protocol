@@ -27,7 +27,7 @@ Visual Stratum 3 extends VS2 with a multi-layer transport architecture that spec
 │         Chat, Files, Voice, Marketplace, Hosting             │
 ├─────────────────────────────────────────────────────────────┤
 │                    ENCRYPTION LAYER                          │
-│         AES-256-GCM + X25519 + HKDF-SHA256                  │
+│     XChaCha20-Poly1305 + X25519 + HKDF-SHA256               │
 ├─────────────────────────────────────────────────────────────┤
 │                    TRANSPORT LAYER                           │
 │  ┌──────────┬──────────┬───────────┬──────────────────┐     │
@@ -188,7 +188,7 @@ frequency is already high.
 LZ4 compression is applied before encryption for payloads > 64 bytes:
 
 ```
-Plaintext → LZ4 Compress → AES-256-GCM Encrypt → Fragment → Send
+Plaintext → LZ4 Compress → XChaCha20-Poly1305 Encrypt → Fragment → Send
 ```
 
 LZ4 header magic: `0x4C 0x5A 0x34 0x01` — used by receiver to detect compressed payloads.

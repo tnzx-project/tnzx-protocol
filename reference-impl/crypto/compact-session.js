@@ -1,12 +1,16 @@
 /**
  * Compact Session Encryption — Prototype
  *
- * Replaces the 76-byte standard envelope (nonce 16 + salt 32 + IV 12 + tag 16)
- * with a 32-byte compact envelope (counter 4 + IV 12 + tag 16) for established
+ * Replaces the 88-byte standard envelope (replayId 16 + salt 32 + nonce 24 + tag 16)
+ * with a 32-byte compact envelope (counter 4 + nonce 12 + tag 16) for established
  * sessions where both parties share a secret from X25519 ECDH.
  *
- * Wire format: counter(4) || IV(12) || ciphertext(N) || tag(16)
- * Total overhead: 32 bytes (vs 76 standard = -58%)
+ * Uses ChaCha20-Poly1305 (12-byte nonce, native Node.js) for session-level
+ * encryption where keys rotate per-counter. XChaCha20 not needed here because
+ * HKDF derives a fresh key per message — no nonce collision risk.
+ *
+ * Wire format: counter(4) || nonce(12) || ciphertext(N) || tag(16)
+ * Total overhead: 32 bytes (vs 88 standard = -64%)
  *
  * Key derivation: HKDF-SHA256(shared_secret, counter_as_4B, "tnzx-compact-v1", 32)
  * AAD: "tnzx-compact-v1" || counter(4)
@@ -21,7 +25,7 @@
 
 const crypto = require('crypto');
 
-const ALGORITHM = 'aes-256-gcm';
+const ALGORITHM = 'chacha20-poly1305';
 const KEY_LENGTH = 32;
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
@@ -59,7 +63,7 @@ class CompactSession {
   /**
    * Encrypt plaintext with compact envelope
    * @param {Buffer|string} plaintext
-   * @returns {Buffer} counter(4) || IV(12) || ciphertext || tag(16)
+   * @returns {Buffer} counter(4) || nonce(12) || ciphertext || tag(16)
    */
   encrypt(plaintext) {
     if (this.sendCounter > MAX_COUNTER) {
@@ -69,21 +73,25 @@ class CompactSession {
     const ptBuf = Buffer.isBuffer(plaintext) ? plaintext : Buffer.from(plaintext, 'utf8');
     const counter = this.sendCounter++;
     const { key, counterBuf } = this._deriveKey(counter);
-    const iv = crypto.randomBytes(IV_LENGTH);
+    const nonce = crypto.randomBytes(IV_LENGTH);
 
-    const cipher = crypto.createCipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
-    const aad = Buffer.concat([Buffer.from(INFO_STRING, 'utf8'), counterBuf]);
-    cipher.setAAD(aad);
+    try {
+      const cipher = crypto.createCipheriv(ALGORITHM, key, nonce, { authTagLength: AUTH_TAG_LENGTH });
+      const aad = Buffer.concat([Buffer.from(INFO_STRING, 'utf8'), counterBuf]);
+      cipher.setAAD(aad);
 
-    const ciphertext = Buffer.concat([cipher.update(ptBuf), cipher.final()]);
-    const tag = cipher.getAuthTag();
+      const ciphertext = Buffer.concat([cipher.update(ptBuf), cipher.final()]);
+      const tag = cipher.getAuthTag();
 
-    return Buffer.concat([counterBuf, iv, ciphertext, tag]);
+      return Buffer.concat([counterBuf, nonce, ciphertext, tag]);
+    } finally {
+      key.fill(0);
+    }
   }
 
   /**
    * Decrypt compact envelope
-   * @param {Buffer} data - counter(4) || IV(12) || ciphertext || tag(16)
+   * @param {Buffer} data - counter(4) || nonce(12) || ciphertext || tag(16)
    * @returns {Buffer} plaintext
    */
   decrypt(data) {
@@ -93,7 +101,7 @@ class CompactSession {
 
     const counterBuf = data.slice(0, COUNTER_LENGTH);
     const counter = counterBuf.readUInt32BE(0);
-    const iv = data.slice(COUNTER_LENGTH, COUNTER_LENGTH + IV_LENGTH);
+    const nonce = data.slice(COUNTER_LENGTH, COUNTER_LENGTH + IV_LENGTH);
     const tagStart = data.length - AUTH_TAG_LENGTH;
     const ciphertext = data.slice(COUNTER_LENGTH + IV_LENGTH, tagStart);
     const tag = data.slice(tagStart);
@@ -109,12 +117,16 @@ class CompactSession {
     }
 
     const { key } = this._deriveKey(counter);
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
-    const aad = Buffer.concat([Buffer.from(INFO_STRING, 'utf8'), counterBuf]);
-    decipher.setAAD(aad);
-    decipher.setAuthTag(tag);
-
-    const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    let plaintext;
+    try {
+      const decipher = crypto.createDecipheriv(ALGORITHM, key, nonce, { authTagLength: AUTH_TAG_LENGTH });
+      const aad = Buffer.concat([Buffer.from(INFO_STRING, 'utf8'), counterBuf]);
+      decipher.setAAD(aad);
+      decipher.setAuthTag(tag);
+      plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    } finally {
+      key.fill(0);
+    }
 
     // Track counter after successful decryption
     this.receivedCounters.add(counter);

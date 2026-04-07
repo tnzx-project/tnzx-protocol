@@ -3,28 +3,32 @@
  *
  * Standalone implementation of the VS cryptographic layer:
  * - X25519 ECDH key exchange
- * - AES-256-GCM authenticated encryption
+ * - XChaCha20-Poly1305 authenticated encryption (RFC 8439 + HChaCha20)
  * - HKDF-SHA256 key derivation
  * - Ed25519 → X25519 key conversion (wallet-based identity)
  * - Perfect forward secrecy via ephemeral keys
  * - Replay protection via nonce tracking
  *
+ * Cipher: XChaCha20-Poly1305 (24-byte nonce, misuse-resistant)
+ * HChaCha20 vendored from @noble/ciphers (MIT, Paul Miller, audit Cure53 2023)
+ * ChaCha20-Poly1305 AEAD via Node.js native crypto (OpenSSL)
+ *
  * Dependencies: Node.js crypto module only (no external packages)
  *
- * @version 2.0.0
+ * @version 3.0.0
  * @license LGPL-2.1
  */
 'use strict';
 
 const crypto = require('crypto');
+const xchacha = require('./xchacha20');
 
 // Constants
-const ALGORITHM = 'aes-256-gcm';
 const KEY_LENGTH = 32;
-const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
 const SALT_LENGTH = 32;
-const NONCE_LENGTH = 16;
+const NONCE_LENGTH = 24;  // XChaCha20: 192-bit nonce
+const REPLAY_ID_LENGTH = 16; // Replay protection nonce (separate from crypto nonce)
 const MAX_NONCE_AGE_MS = 300000; // 5-minute replay window
 
 // Field prime p = 2^255 - 19 (Curve25519)
@@ -122,7 +126,7 @@ class E2ECrypto {
    * @param {string} info - Context string
    * @returns {{ key: Buffer, salt: Buffer }}
    */
-  deriveKey(sharedSecret, salt = null, info = 'tnzx-stego-e2e-v2') {
+  deriveKey(sharedSecret, salt = null, info = 'tnzx-e2e-v3') {
     if (!salt) salt = crypto.randomBytes(SALT_LENGTH);
     const key = Buffer.from(crypto.hkdfSync('sha256', sharedSecret, salt, info, KEY_LENGTH));
     return { key, salt };
@@ -151,27 +155,26 @@ class E2ECrypto {
    * Encrypt message for recipient
    * @param {Buffer|string} plaintext
    * @param {string} recipientId
-   * @returns {Buffer} nonce(16) + salt(32) + iv(12) + ciphertext + tag(16)
+   * @returns {Buffer} replayId(16) + salt(32) + nonce(24) + ciphertext + tag(16)
    */
   encrypt(plaintext, recipientId) {
     const session = this.sessionKeys.get(recipientId);
     if (!session) throw new Error(`No session with ${recipientId}`);
 
     const ptBuf = Buffer.isBuffer(plaintext) ? plaintext : Buffer.from(plaintext, 'utf8');
-    const nonce = crypto.randomBytes(NONCE_LENGTH);
+    const replayId = crypto.randomBytes(REPLAY_ID_LENGTH);
     const salt = crypto.randomBytes(SALT_LENGTH);
     const { key } = this.deriveKey(session.sharedSecret, salt);
-    const iv = crypto.randomBytes(IV_LENGTH);
+    const nonce = crypto.randomBytes(NONCE_LENGTH);
 
-    const cipher = crypto.createCipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
-    const aad = Buffer.concat([Buffer.from('tnzx-e2e-v2', 'utf8'), nonce]);
-    cipher.setAAD(aad);
-
-    const ciphertext = Buffer.concat([cipher.update(ptBuf), cipher.final()]);
-    const tag = cipher.getAuthTag();
-    session.messageCount++;
-
-    return Buffer.concat([nonce, salt, iv, ciphertext, tag]);
+    const aad = Buffer.concat([Buffer.from('tnzx-e2e-v3', 'utf8'), replayId]);
+    try {
+      const { ciphertext, tag } = xchacha.encrypt(key, nonce, ptBuf, aad);
+      session.messageCount++;
+      return Buffer.concat([replayId, salt, nonce, ciphertext, tag]);
+    } finally {
+      key.fill(0);
+    }
   }
 
   /**
@@ -181,30 +184,30 @@ class E2ECrypto {
    * @returns {Buffer} Decrypted plaintext
    */
   decrypt(encryptedData, senderId) {
-    const minLen = NONCE_LENGTH + SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH;
+    const minLen = REPLAY_ID_LENGTH + SALT_LENGTH + NONCE_LENGTH + AUTH_TAG_LENGTH;
     if (encryptedData.length < minLen) throw new Error('Data too short');
 
     const session = this.sessionKeys.get(senderId);
     if (!session) throw new Error(`No session with ${senderId}`);
 
     let off = 0;
-    const nonce = encryptedData.slice(off, off + NONCE_LENGTH); off += NONCE_LENGTH;
+    const replayId = encryptedData.slice(off, off + REPLAY_ID_LENGTH); off += REPLAY_ID_LENGTH;
     const salt = encryptedData.slice(off, off + SALT_LENGTH); off += SALT_LENGTH;
-    const iv = encryptedData.slice(off, off + IV_LENGTH); off += IV_LENGTH;
+    const nonce = encryptedData.slice(off, off + NONCE_LENGTH); off += NONCE_LENGTH;
     const tag = encryptedData.slice(-AUTH_TAG_LENGTH);
     const ciphertext = encryptedData.slice(off, -AUTH_TAG_LENGTH);
 
-    if (!this._checkNonce(nonce)) throw new Error('Replay attack detected');
+    if (!this._checkNonce(replayId)) throw new Error('Replay attack detected');
 
     const { key } = this.deriveKey(session.sharedSecret, salt);
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
-    decipher.setAuthTag(tag);
-    decipher.setAAD(Buffer.concat([Buffer.from('tnzx-e2e-v2', 'utf8'), nonce]));
+    const aad = Buffer.concat([Buffer.from('tnzx-e2e-v3', 'utf8'), replayId]);
 
     try {
-      return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+      return xchacha.decrypt(key, nonce, ciphertext, tag, aad);
     } catch (err) {
       throw new Error(`Decryption failed: ${err.message}`);
+    } finally {
+      key.fill(0);
     }
   }
 
@@ -227,7 +230,7 @@ class E2ECrypto {
  * One-shot encryption (no pre-established session, PFS via ephemeral key)
  * @param {Buffer|string} plaintext
  * @param {Buffer} recipientPublicKey - 32-byte X25519 public key
- * @returns {Buffer} nonce(16) + ephemeralPub(32) + salt(32) + iv(12) + ciphertext + tag(16)
+ * @returns {Buffer} replayId(16) + ephemeralPub(32) + salt(32) + nonce(24) + ciphertext + tag(16)
  */
 function encryptOneShot(plaintext, recipientPublicKey) {
   const e2e = new E2ECrypto();
@@ -236,17 +239,16 @@ function encryptOneShot(plaintext, recipientPublicKey) {
   const { key, salt } = e2e.deriveKey(shared);
 
   const ptBuf = Buffer.isBuffer(plaintext) ? plaintext : Buffer.from(plaintext, 'utf8');
+  const replayId = crypto.randomBytes(REPLAY_ID_LENGTH);
   const nonce = crypto.randomBytes(NONCE_LENGTH);
-  const iv = crypto.randomBytes(IV_LENGTH);
 
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
-  const aad = Buffer.concat([Buffer.from('tnzx-oneshot-v2', 'utf8'), nonce, ephemeral.publicKey]);
-  cipher.setAAD(aad);
-
-  const ciphertext = Buffer.concat([cipher.update(ptBuf), cipher.final()]);
-  const tag = cipher.getAuthTag();
-
-  return Buffer.concat([nonce, ephemeral.publicKey, salt, iv, ciphertext, tag]);
+  const aad = Buffer.concat([Buffer.from('tnzx-oneshot-v3', 'utf8'), replayId, ephemeral.publicKey]);
+  try {
+    const { ciphertext, tag } = xchacha.encrypt(key, nonce, ptBuf, aad);
+    return Buffer.concat([replayId, ephemeral.publicKey, salt, nonce, ciphertext, tag]);
+  } finally {
+    key.fill(0);
+  }
 }
 
 /**
@@ -274,29 +276,30 @@ function _checkOneShotNonce(nonce) {
  * @returns {Buffer} Decrypted plaintext
  */
 function decryptOneShot(encryptedData, privateKey) {
-  const minLen = NONCE_LENGTH + 32 + SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH;
+  const minLen = REPLAY_ID_LENGTH + 32 + SALT_LENGTH + NONCE_LENGTH + AUTH_TAG_LENGTH;
   if (encryptedData.length < minLen) throw new Error('Data too short');
 
   let off = 0;
-  const nonce = encryptedData.slice(off, off + NONCE_LENGTH); off += NONCE_LENGTH;
+  const replayId = encryptedData.slice(off, off + REPLAY_ID_LENGTH); off += REPLAY_ID_LENGTH;
   const ephPub = encryptedData.slice(off, off + 32); off += 32;
   const salt = encryptedData.slice(off, off + SALT_LENGTH); off += SALT_LENGTH;
-  const iv = encryptedData.slice(off, off + IV_LENGTH); off += IV_LENGTH;
+  const nonce = encryptedData.slice(off, off + NONCE_LENGTH); off += NONCE_LENGTH;
   const tag = encryptedData.slice(-AUTH_TAG_LENGTH);
   const ciphertext = encryptedData.slice(off, -AUTH_TAG_LENGTH);
 
-  if (!_checkOneShotNonce(nonce)) throw new Error('Replay attack detected (one-shot)');
+  if (!_checkOneShotNonce(replayId)) throw new Error('Replay attack detected (one-shot)');
 
   const e2e = new E2ECrypto();
   e2e.keyPair = { privateKey, publicKey: null };
   const shared = e2e.computeSharedSecret(ephPub);
   const { key } = e2e.deriveKey(shared, salt);
 
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
-  decipher.setAuthTag(tag);
-  decipher.setAAD(Buffer.concat([Buffer.from('tnzx-oneshot-v2', 'utf8'), nonce, ephPub]));
-
-  return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  const aad = Buffer.concat([Buffer.from('tnzx-oneshot-v3', 'utf8'), replayId, ephPub]);
+  try {
+    return xchacha.decrypt(key, nonce, ciphertext, tag, aad);
+  } finally {
+    key.fill(0);
+  }
 }
 
 // --- BigInt helpers for Ed25519→X25519 ---
@@ -328,5 +331,6 @@ module.exports = {
   E2ECrypto,
   encryptOneShot,
   decryptOneShot,
-  ALGORITHM, KEY_LENGTH, IV_LENGTH, AUTH_TAG_LENGTH, SALT_LENGTH, NONCE_LENGTH, MAX_NONCE_AGE_MS
+  xchacha,
+  KEY_LENGTH, AUTH_TAG_LENGTH, SALT_LENGTH, NONCE_LENGTH, REPLAY_ID_LENGTH, MAX_NONCE_AGE_MS
 };
