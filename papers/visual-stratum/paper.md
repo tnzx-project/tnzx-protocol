@@ -296,7 +296,7 @@ However, token staking has an advantage: it does not require continuous power co
 
 #### 4.4.4 Self-Funding
 
-Mining produces cryptocurrency rewards. Pool fees (0.5-1%) on these rewards fund the relay infrastructure. The communication system pays for itself through the economic activity of its users. No external funding is required for ongoing *relay operation* once the pool achieves mining-fee break-even. Protocol development, the reference implementation, and independent security audit require separate funding — this is the purpose of grant applications such as the one this paper accompanies.
+Mining produces cryptocurrency rewards. Pool fees (0.5-1%) on these rewards fund the relay infrastructure. The communication system pays for itself through the economic activity of its users. No external funding is required for ongoing *relay operation* once the pool achieves mining-fee break-even. Protocol development, the reference implementation, and independent security audit require separate funding through grants and community contributions.
 
 #### 4.4.5 Limitations of the Economic Model
 
