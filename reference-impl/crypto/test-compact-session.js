@@ -1,5 +1,24 @@
 /**
  * test-compact-session.js — Tests for Compact Session Encryption
+ *
+ * What these tests cover:
+ *   - Encrypt/decrypt roundtrip (single and multi-message)
+ *   - Counter monotonicity and wire format
+ *   - Tampered counter rejection (Poly1305 auth failure)
+ *   - Wrong shared secret rejection
+ *   - Replay protection (duplicate ciphertext rejected)
+ *   - Out-of-order delivery (counters 2,0,1 decrypted successfully)
+ *   - Edge cases: empty plaintext, binary data
+ *   - Input validation: short key, short data
+ *   - Overhead comparison: 32 bytes vs 88 bytes standard (-64%)
+ *
+ * What these tests do NOT cover:
+ *   - Counter overflow at 2^32: no test that re-key is triggered.
+ *   - Concurrent sessions between the same parties.
+ *   - Performance under high message rates.
+ *   - HKDF output correctness against known test vectors.
+ *   - Timing side channels in ChaCha20-Poly1305 (trusts Node.js OpenSSL).
+ *
  * @license LGPL-2.1
  */
 

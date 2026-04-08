@@ -24,7 +24,7 @@ Visual Stratum 3 extends VS2 with a multi-layer transport architecture that spec
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    APPLICATION LAYER                         │
-│         Chat, Files, Voice, Marketplace, Hosting             │
+│         Chat, Files, Voice, Services, Data Transfer          │
 ├─────────────────────────────────────────────────────────────┤
 │                    ENCRYPTION LAYER                          │
 │     XChaCha20-Poly1305 + X25519 + HKDF-SHA256               │
@@ -46,17 +46,17 @@ VS3 automatically selects the optimal transport strategy based on message type:
 
 | Mode | Channels | Use Case | Stealth |
 |------|----------|----------|---------|
-| **ANON** | Stratum only | Private chat, escrow | Maximum |
-| **BALANCED** | Stratum + bonus channels (delayed) | DNS, marketplace | High |
-| **SPEED** | All channels parallel | File transfer, hosting | Medium |
+| **ANON** | Stratum only | Private messaging, sensitive operations | Maximum |
+| **BALANCED** | Stratum + bonus channels (delayed) | General queries, service requests | High |
+| **SPEED** | All channels parallel | File transfer, bulk data | Medium |
 
 ### Automatic Mode Selection
 
 | Message Type | Mode |
 |-------------|------|
-| Chat, presence, escrow operations | ANON |
-| DNS queries, marketplace listings | BALANCED |
-| File transfers, web hosting | SPEED |
+| Chat, presence, sensitive operations | ANON |
+| Service queries, name resolution | BALANCED |
+| File transfers, bulk data | SPEED |
 
 ### Timing Decorrelation
 
@@ -180,7 +180,7 @@ frequency is already high.
 | File transfer | 10-50 KB/s | Yes |
 | Voice (Opus) | 6-12 KB/s | Theoretical (SPEED mode only, not yet implemented) |
 | Audio streaming | 16-32 KB/s | Yes |
-| Web hosting | 45 KB/s | Yes |
+| Bulk data transfer | 45 KB/s | Yes |
 | Low-res video | 50-100 KB/s | Yes (limited) |
 
 ## Compression
@@ -193,16 +193,21 @@ Plaintext → LZ4 Compress → XChaCha20-Poly1305 Encrypt → Fragment → Send
 
 LZ4 header magic: `0x4C 0x5A 0x34 0x01` — used by receiver to detect compressed payloads.
 
-## Encrypted Type Envelope
+## Encrypted Type Envelope (Planned)
 
-All VS3 frames use `MSG_ENCRYPTED` (`0x05`) as the external type in the wire
-header. The real message type is the first byte of the encrypted payload.
+> **Implementation status:** This section describes the target design. The reference
+> implementation and pool demo currently transmit message types in cleartext
+> (e.g., `0x01` TEXT, `0x04` KEY_EXCHANGE). The encrypted envelope is planned for
+> the next breaking release. See the project status table in the root README.
+
+In the target design, all VS3 frames use `MSG_ENCRYPTED` (`0x05`) as the external
+type in the wire header. The real message type is the first byte of the encrypted payload.
 
 ### Motivation
 
 Without this envelope, the pool or any intermediate proxy can inspect the
-`TYPE` byte and distinguish between chat messages, DNS queries, escrow
-operations, key exchanges, and other traffic. This leaks application-level
+`TYPE` byte and distinguish between chat messages, service queries,
+key exchanges, and other traffic. This leaks application-level
 metadata to infrastructure operators. The encrypted type envelope removes
 this distinguisher: the pool sees only `0x05 ENCRYPTED` for every frame,
 regardless of the actual operation.
@@ -249,7 +254,7 @@ exposed in cleartext on the wire.
 
 From the pool/proxy perspective, all VS3 traffic is a homogeneous stream of
 encrypted fragments. The pool cannot determine whether a user is chatting,
-resolving DNS, performing an escrow operation, or tunneling data. Only the
+resolving names, performing authenticated operations, or tunneling data. Only the
 message size (fragment count) and timing remain as potential side channels;
 these are addressed separately by timing decorrelation (see Adaptive Modes)
 and padding strategies.
