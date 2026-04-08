@@ -1,5 +1,25 @@
 # Changelog
 
+## [draft-02] — 2026-04-08
+
+### Added (Implementation)
+- **Encrypted type envelope:** `wrapTypedPayload()` and `unwrapTypedPayload()` in stego-core.
+  All VS3 frames use `MSG_ENCRYPTED` (0x05) as external type; real type is the first byte
+  of the encrypted payload. Exported from both stego-core and barrel index.
+- 9 new tests for encrypted type envelope: wrap/unwrap roundtrip for all MSG_TYPEs,
+  full E2E roundtrip (session + one-shot), KEY_EXCHANGE envelope, validation, edge cases.
+
+### Fixed
+- `index.js` barrel: removed stale `ALGORITHM` and `IV_LENGTH` exports (AES-GCM remnants
+  from pre-draft-01; XChaCha20 migration made these undefined).
+
+### Changed (Specification)
+- `protocols/vs3/README.md`: Encrypted Type Envelope section updated — removed "(Planned)"
+  status now that reference implementation is complete.
+
+### Verified
+- All 90 reference implementation tests pass (50 main + 24 xchacha20 + 16 compact-session).
+
 ## [draft-01] — 2026-04-07
 
 ### Changed (Cryptography)

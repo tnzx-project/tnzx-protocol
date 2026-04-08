@@ -193,15 +193,15 @@ Plaintext → LZ4 Compress → XChaCha20-Poly1305 Encrypt → Fragment → Send
 
 LZ4 header magic: `0x4C 0x5A 0x34 0x01` — used by receiver to detect compressed payloads.
 
-## Encrypted Type Envelope (Planned)
+## Encrypted Type Envelope
 
-> **Implementation status:** This section describes the target design. The reference
-> implementation and pool demo currently transmit message types in cleartext
-> (e.g., `0x01` TEXT, `0x04` KEY_EXCHANGE). The encrypted envelope is planned for
-> the next breaking release. See the project status table in the root README.
+> **Implementation status:** The reference implementation provides `wrapTypedPayload()`
+> and `unwrapTypedPayload()` in `stego-core/index.js` (since draft-02). The pool demo
+> does not yet enforce the envelope — it currently transmits types in cleartext.
+> Migration is tracked in the pool demo CHANGELOG.
 
-In the target design, all VS3 frames use `MSG_ENCRYPTED` (`0x05`) as the external
-type in the wire header. The real message type is the first byte of the encrypted payload.
+All VS3 frames use `MSG_ENCRYPTED` (`0x05`) as the external type in the wire header.
+The real message type is the first byte of the encrypted payload.
 
 ### Motivation
 
