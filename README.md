@@ -150,7 +150,8 @@ A reference implementation in Node.js is provided in [`reference-impl/`](referen
 - E2E encryption (X25519 + XChaCha20-Poly1305 + HKDF + replay protection)
 - Mining Gate verification (PoW-gated access control)
 - Compact session encryption (prototype) — counter-based HKDF with ChaCha20-Poly1305, 32-byte overhead vs 88-byte standard (-64%)
-- Test suite: 81 tests across 3 suites (`node test.js` + `node crypto/test-xchacha20.js` + `node crypto/test-compact-session.js` — no external dependencies)
+- Encrypted type envelope (`wrapTypedPayload`/`unwrapTypedPayload`) — all frames show `0x05 ENCRYPTED` on the wire
+- Test suite: 90 tests across 3 suites (`node test.js` + `node crypto/test-xchacha20.js` + `node crypto/test-compact-session.js` — no external dependencies)
 
 **Not included in reference implementation** (specified in paper, planned for a future release):
 - PNG LSB steganographic channel

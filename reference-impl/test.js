@@ -39,7 +39,8 @@
 
 const assert = require('assert');
 const crypto = require('crypto');
-const { StegoEncoder, StegoDecoder, MSG_TYPE, MAGIC_BYTE, VERSION_V3, BYTES_PER_SHARE_V3 } = require('./stego-core');
+const { StegoEncoder, StegoDecoder, MSG_TYPE, MAGIC_BYTE, VERSION_V3, BYTES_PER_SHARE_V3,
+        wrapTypedPayload, unwrapTypedPayload } = require('./stego-core');
 const { E2ECrypto, encryptOneShot, decryptOneShot } = require('./crypto');
 const { MiningGate, ACCESS_LEVEL } = require('./mining-gate');
 
@@ -624,6 +625,152 @@ test('FIX #8: decryptOneShot handles empty plaintext', () => {
   const decrypted = decryptOneShot(encrypted, recipient.keyPair.privateKey);
 
   assert.strictEqual(decrypted.length, 0, 'One-shot empty plaintext should decrypt to 0 bytes');
+});
+
+// ============================================
+// ENCRYPTED TYPE ENVELOPE
+// ============================================
+
+console.log('\n── Encrypted Type Envelope ──');
+
+test('wrapTypedPayload prepends type byte', () => {
+  const wrapped = wrapTypedPayload(MSG_TYPE.TEXT, 'hello');
+  assert.strictEqual(wrapped[0], MSG_TYPE.TEXT);
+  assert.strictEqual(wrapped.slice(1).toString('utf8'), 'hello');
+});
+
+test('unwrapTypedPayload extracts type and payload', () => {
+  const wrapped = wrapTypedPayload(MSG_TYPE.KEY_EXCHANGE, Buffer.from([0xDE, 0xAD]));
+  const { realType, payload } = unwrapTypedPayload(wrapped);
+  assert.strictEqual(realType, MSG_TYPE.KEY_EXCHANGE);
+  assert.deepStrictEqual(payload, Buffer.from([0xDE, 0xAD]));
+});
+
+test('wrap/unwrap roundtrip for all MSG_TYPEs', () => {
+  for (const [name, type] of Object.entries(MSG_TYPE)) {
+    const original = Buffer.from(`test-${name}`);
+    const wrapped = wrapTypedPayload(type, original);
+    const { realType, payload } = unwrapTypedPayload(wrapped);
+    assert.strictEqual(realType, type, `Type mismatch for ${name}`);
+    assert.deepStrictEqual(payload, original, `Payload mismatch for ${name}`);
+  }
+});
+
+test('E2E encrypted type envelope: external type is 0x05, real type hidden', () => {
+  const alice = new E2ECrypto();
+  const bob = new E2ECrypto();
+  alice.generateKeyPair();
+  bob.generateKeyPair();
+  alice.establishSession('bob', bob.getPublicKey());
+  bob.establishSession('alice', alice.getPublicKey());
+
+  // Sender: wrap real type inside, encrypt, frame as ENCRYPTED
+  const inner = wrapTypedPayload(MSG_TYPE.TEXT, 'secret message');
+  const encrypted = alice.encrypt(inner, 'bob');
+  const encoder = new StegoEncoder();
+  const { frames } = encoder.createMessageFrames(encrypted, MSG_TYPE.ENCRYPTED);
+
+  // Verify: every frame header shows 0x05 ENCRYPTED, never the real type
+  for (const frame of frames) {
+    assert.strictEqual(frame[2], MSG_TYPE.ENCRYPTED,
+      'External type must be ENCRYPTED (0x05)');
+    assert.notStrictEqual(frame[2], MSG_TYPE.TEXT,
+      'Real type must NOT be visible in frame header');
+  }
+
+  // Receiver: reassemble, decrypt, unwrap
+  const decoder = new StegoDecoder();
+  let result;
+  for (const frame of frames) {
+    result = decoder.processFrame(frame);
+  }
+  assert.ok(result.complete, 'Message should be complete');
+  assert.strictEqual(result.msgType, MSG_TYPE.ENCRYPTED, 'Frame-level type is ENCRYPTED');
+
+  const decrypted = bob.decrypt(result.payload, 'alice');
+  const { realType, payload } = unwrapTypedPayload(decrypted);
+  assert.strictEqual(realType, MSG_TYPE.TEXT, 'Inner type should be TEXT');
+  assert.strictEqual(payload.toString('utf8'), 'secret message');
+});
+
+test('Encrypted envelope with KEY_EXCHANGE type', () => {
+  const alice = new E2ECrypto();
+  const bob = new E2ECrypto();
+  alice.generateKeyPair();
+  bob.generateKeyPair();
+  alice.establishSession('bob', bob.getPublicKey());
+  bob.establishSession('alice', alice.getPublicKey());
+
+  const keyData = crypto.randomBytes(32); // Simulated key exchange payload
+  const inner = wrapTypedPayload(MSG_TYPE.KEY_EXCHANGE, keyData);
+  const encrypted = alice.encrypt(inner, 'bob');
+  const encoder = new StegoEncoder();
+  const { frames } = encoder.createMessageFrames(encrypted, MSG_TYPE.ENCRYPTED);
+
+  // All frames externally 0x05
+  for (const f of frames) assert.strictEqual(f[2], MSG_TYPE.ENCRYPTED);
+
+  const decoder = new StegoDecoder();
+  let result;
+  for (const f of frames) result = decoder.processFrame(f);
+
+  const decrypted = bob.decrypt(result.payload, 'alice');
+  const { realType, payload } = unwrapTypedPayload(decrypted);
+  assert.strictEqual(realType, MSG_TYPE.KEY_EXCHANGE);
+  assert.deepStrictEqual(payload, keyData);
+});
+
+test('Encrypted envelope with one-shot (PFS) encryption', () => {
+  const recipient = new E2ECrypto();
+  recipient.generateKeyPair();
+
+  const inner = wrapTypedPayload(MSG_TYPE.PING, Buffer.from([0x01]));
+  const encrypted = encryptOneShot(inner, recipient.getPublicKey());
+  const encoder = new StegoEncoder();
+  const { frames } = encoder.createMessageFrames(encrypted, MSG_TYPE.ENCRYPTED);
+
+  for (const f of frames) assert.strictEqual(f[2], MSG_TYPE.ENCRYPTED);
+
+  const decoder = new StegoDecoder();
+  let result;
+  for (const f of frames) result = decoder.processFrame(f);
+
+  const decrypted = decryptOneShot(result.payload, recipient.keyPair.privateKey);
+  const { realType, payload } = unwrapTypedPayload(decrypted);
+  assert.strictEqual(realType, MSG_TYPE.PING);
+  assert.deepStrictEqual(payload, Buffer.from([0x01]));
+});
+
+test('unwrapTypedPayload rejects empty buffer', () => {
+  assert.throws(
+    () => unwrapTypedPayload(Buffer.alloc(0)),
+    /too short/,
+    'Empty buffer should be rejected'
+  );
+});
+
+test('wrapTypedPayload rejects invalid type', () => {
+  assert.throws(() => wrapTypedPayload(256, 'test'), /byte/);
+  assert.throws(() => wrapTypedPayload(-1, 'test'), /byte/);
+  assert.throws(() => wrapTypedPayload('text', 'test'), /byte/);
+});
+
+test('Encrypted envelope preserves empty payload', () => {
+  const alice = new E2ECrypto();
+  const bob = new E2ECrypto();
+  alice.generateKeyPair();
+  bob.generateKeyPair();
+  alice.establishSession('bob', bob.getPublicKey());
+  bob.establishSession('alice', alice.getPublicKey());
+
+  const inner = wrapTypedPayload(MSG_TYPE.ACK, Buffer.alloc(0));
+  assert.strictEqual(inner.length, 1, 'Wrapped empty payload is just the type byte');
+
+  const encrypted = alice.encrypt(inner, 'bob');
+  const decrypted = bob.decrypt(encrypted, 'alice');
+  const { realType, payload } = unwrapTypedPayload(decrypted);
+  assert.strictEqual(realType, MSG_TYPE.ACK);
+  assert.strictEqual(payload.length, 0);
 });
 
 // ============================================

@@ -471,10 +471,61 @@ class StegoDecoder {
   }
 }
 
+// --- Encrypted Type Envelope ---
+//
+// All VS3 frames on the wire use MSG_TYPE.ENCRYPTED (0x05) as the external type.
+// The real message type is prepended as the first byte of the plaintext before
+// encryption. An observer (pool, proxy, DPI) sees only 0x05 for every frame,
+// regardless of whether the inner message is TEXT, KEY_EXCHANGE, PING, etc.
+//
+// Wire layout:
+//   Frame header:  [MAGIC][VERSION][0x05][msgId...][frag...][len]
+//   Frame payload: E2E-encrypted( [realType] + [originalPayload] )
+//
+// Usage:
+//   // Sender
+//   const inner = wrapTypedPayload(MSG_TYPE.TEXT, plaintext);
+//   const encrypted = e2e.encrypt(inner, recipientId);
+//   const { frames } = encoder.createMessageFrames(encrypted, MSG_TYPE.ENCRYPTED);
+//
+//   // Receiver
+//   const decrypted = e2e.decrypt(result.payload, senderId);
+//   const { realType, payload } = unwrapTypedPayload(decrypted);
+
+/**
+ * Prepend real message type byte to plaintext before encryption.
+ * @param {number} realType - The actual MSG_TYPE (e.g., MSG_TYPE.TEXT)
+ * @param {Buffer|string} payload - Original message content
+ * @returns {Buffer} [realType byte] + payload
+ */
+function wrapTypedPayload(realType, payload) {
+  if (typeof realType !== 'number' || realType < 0 || realType > 255) {
+    throw new Error('realType must be a byte (0-255)');
+  }
+  const buf = Buffer.isBuffer(payload) ? payload : Buffer.from(payload, 'utf8');
+  return Buffer.concat([Buffer.from([realType]), buf]);
+}
+
+/**
+ * Extract real message type from decrypted payload.
+ * @param {Buffer} decryptedPayload - Decrypted data: [realType byte] + original payload
+ * @returns {{ realType: number, payload: Buffer }}
+ */
+function unwrapTypedPayload(decryptedPayload) {
+  if (!Buffer.isBuffer(decryptedPayload) || decryptedPayload.length < 1) {
+    throw new Error('Decrypted payload too short for type envelope');
+  }
+  return {
+    realType: decryptedPayload[0],
+    payload: decryptedPayload.slice(1)
+  };
+}
+
 module.exports = {
   StegoEncoder, StegoDecoder,
   MSG_TYPE, MAGIC_BYTE, HEADER_SIZE, MAX_FRAGMENT_SIZE,
   VERSION_V1, VERSION_V2, VERSION_V3, BYTES_PER_SHARE_V3,
   MAX_PENDING_MESSAGES, MESSAGE_TIMEOUT_MS, MAX_TOTAL_FRAGMENTS,
-  isValidHex, safeHexToBuffer
+  isValidHex, safeHexToBuffer,
+  wrapTypedPayload, unwrapTypedPayload
 };
