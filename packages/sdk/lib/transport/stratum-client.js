@@ -44,6 +44,7 @@ class StratumClient extends EventEmitter {
     this._reqId = 100;
     this._connected = false;
     this._sessionKey = null;   // HMAC sentinel key (set if proxy provides session token)
+    this._sendInterval = null; // Track active send interval for cleanup
   }
 
   get connected() { return this._connected; }
@@ -74,6 +75,7 @@ class StratumClient extends EventEmitter {
    * Close the connection.
    */
   disconnect() {
+    if (this._sendInterval) { clearInterval(this._sendInterval); this._sendInterval = null; }
     if (this._sock) this._sock.destroy();
   }
 
@@ -91,7 +93,9 @@ class StratumClient extends EventEmitter {
         return reject(new Error('Not connected'));
       }
       const iv = setInterval(() => {
-        if (i >= chunks.length) { clearInterval(iv); resolve(); return; }
+        if (i >= chunks.length || !this._sock || this._sock.destroyed) {
+          clearInterval(iv); this._sendInterval = null; resolve(); return;
+        }
         const vs3To = i === 0 ? recipientWallet : null;
         const chunk = chunks[i];
 
@@ -126,6 +130,7 @@ class StratumClient extends EventEmitter {
         this._sock.write(msg + '\n');
         i++;
       }, this.ghostIntervalMs);
+      this._sendInterval = iv;
     });
   }
 
@@ -133,6 +138,11 @@ class StratumClient extends EventEmitter {
 
   _onData(d) {
     this._buf += d.toString();
+    if (this._buf.length > 1048576) { // 1 MB cap — prevents DoS via no newline
+      this.emit('error', new Error('Buffer overflow: server sent >1MB without newline'));
+      this._sock.destroy();
+      return;
+    }
     const lines = this._buf.split('\n');
     this._buf = lines.pop();
 
@@ -140,6 +150,7 @@ class StratumClient extends EventEmitter {
       if (!line.trim()) continue;
       let msg;
       try { msg = JSON.parse(line); } catch { continue; }
+      if (!msg || typeof msg !== 'object' || Array.isArray(msg)) continue;
 
       // Login response
       if (msg.id === 1 && msg.result) {
@@ -177,6 +188,7 @@ class StratumClient extends EventEmitter {
           if (frame.length >= HEADER_LEN + 1 && frame[0] === MAGIC) {
             const type = frame[2];
             const payloadLen = frame[7];
+            if (8 + payloadLen > frame.length) return; // malformed
             const payload = frame.subarray(8, 8 + payloadLen);
             this.emit('frame', { type, payload, raw: frame });
           }

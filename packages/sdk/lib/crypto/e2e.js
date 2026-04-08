@@ -51,6 +51,8 @@ function encryptOneShot(plaintext, recipientPub) {
     return Buffer.concat([replayId, ephemeral.publicKey, salt, nonce, ciphertext, tag]);
   } finally {
     key.fill(0);
+    shared.fill(0);
+    ephemeral.privateKey.fill(0);
   }
 }
 
@@ -76,11 +78,10 @@ function decryptOneShot(packet, myPrivateKey, replayCache) {
   const ciphertext = packet.subarray(off, packet.length - TAG_LEN);
   const tag       = packet.subarray(packet.length - TAG_LEN);
 
-  // Replay detection
-  if (replayCache) {
-    const hex = replayId.toString('hex');
-    if (replayCache.has(hex)) throw new Error('Replay attack detected');
-    replayCache.add(hex);
+  // Replay detection — check only; add AFTER successful decryption
+  const replayHex = replayCache ? replayId.toString('hex') : null;
+  if (replayCache && replayCache.has(replayHex)) {
+    throw new Error('Replay attack detected');
   }
 
   const shared = ecdh(myPrivateKey, ephPub);
@@ -92,11 +93,15 @@ function decryptOneShot(packet, myPrivateKey, replayCache) {
   ]);
 
   try {
-    return xchacha.decrypt(key, nonce, ciphertext, tag, aad);
+    const plaintext = xchacha.decrypt(key, nonce, ciphertext, tag, aad);
+    // Add to replay cache only AFTER successful auth (prevents memory DoS via garbage packets)
+    if (replayCache) replayCache.add(replayHex);
+    return plaintext;
   } catch (err) {
     throw new Error(`Decryption failed: ${err.message}`);
   } finally {
     key.fill(0);
+    shared.fill(0);
   }
 }
 
