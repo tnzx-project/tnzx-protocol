@@ -1,17 +1,26 @@
 /**
  * XChaCha20-Poly1305 test suite
+ * @license LGPL-2.1
  *
- * Validates:
- * 1. HChaCha20 against RFC draft-irtf-cfrg-xchacha Section 2.2.1 test vector
- * 2. XChaCha20-Poly1305 encrypt/decrypt roundtrip
- * 3. Authentication failure on tampered ciphertext
- * 4. Authentication failure on tampered tag
- * 5. Authentication failure on wrong key
- * 6. seal/open wire format roundtrip
- * 7. AAD (Additional Authenticated Data) support
- * 8. Empty plaintext
- * 9. Large plaintext (1MB)
- * 10. Nonce uniqueness (seal generates unique nonces)
+ * What these tests cover:
+ *   1. HChaCha20 against RFC draft-irtf-cfrg-xchacha Section 2.2.1 test vector
+ *   2. XChaCha20-Poly1305 encrypt/decrypt roundtrip
+ *   3. Authentication failure on tampered ciphertext, tag, and wrong key
+ *   4. seal/open wire format (nonce + ciphertext + tag)
+ *   5. AAD: correct AAD passes, wrong AAD rejected, missing AAD rejected
+ *   6. Edge cases: empty plaintext, 1MB plaintext
+ *   7. Nonce uniqueness: seal() generates distinct nonces
+ *
+ * What these tests do NOT cover:
+ *   - Cross-implementation interoperability: no test against libsodium or
+ *     another XChaCha20 implementation (only self-roundtrip).
+ *   - HChaCha20 edge cases: only one RFC test vector. No test for all-zero
+ *     key, all-zero nonce, or counter overflow.
+ *   - Nonce reuse detection: no test that reusing the same nonce with different
+ *     plaintexts leaks information (this is a known property of AEAD, not a bug).
+ *   - Performance: no benchmark for throughput or latency.
+ *   - Side channels: trusts that the ARX operations in HChaCha20 are
+ *     constant-time on the target platform (they should be, but untested).
  */
 
 'use strict';

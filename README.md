@@ -2,6 +2,8 @@
 
 **Open protocols for censorship-resistant communication over cryptocurrency mining channels.**
 
+> **Security notice:** This project is in active research and development. It has not undergone an independent security audit. Do not rely on it to protect life, liberty, or safety without independent verification. The protocol and implementation may contain undiscovered vulnerabilities. We consider honest acknowledgment of these limitations to be essential for a project targeting users in high-risk environments.
+
 ---
 
 ## What is this?
@@ -9,6 +11,36 @@
 TNZX is a family of protocols that exploit the inherent randomness of cryptocurrency mining traffic to create covert communication channels. Mining shares — legitimate proof-of-work submissions — carry hidden encrypted payloads that are entropy-equivalent to normal mining data — see the design paper (Section 7.2) for the information-theoretic argument.
 
 The key innovation is **Mining Gate**: communication bandwidth is mathematically bound to proof-of-work. You must mine to message. This creates anti-spam, economic sustainability, and censorship resistance in a single mechanism.
+
+## Threat Model
+
+Visual Stratum is designed to protect communication in environments where standard secure-messaging channels (Signal, Tor, VPNs) are blocked or fingerprinted at the network layer.
+
+**Who this protects:**
+- Journalists, activists, and human rights defenders under network censorship
+- Users in environments with Deep Packet Inspection (DPI) that blocks known privacy tools
+- Anyone who needs to communicate covertly through a channel that cannot be selectively blocked without economic consequences
+
+**What it protects against:**
+- **ISP-level DPI** that classifies and blocks traffic by protocol fingerprint
+- **Pool operator surveillance** (messages are E2E encrypted; the pool cannot read content)
+- **Passive network observers** who monitor traffic patterns (mining traffic provides cover)
+- **Spam and Sybil attacks** on the communication channel (Mining Gate requires real PoW)
+
+**What it does NOT protect against:**
+- **Device compromise** (malware on the endpoint sees plaintext before encryption)
+- **Nation-state signals intelligence** with per-connection hash verification (ghost shares have zero PoW and are detectable by an observer who validates every share hash)
+- **Global traffic analysis** correlating sender/receiver mining sessions by timing
+- **Pool operator who actively modifies traffic** (integrity attacks on the relay path)
+- **Blocking all mining traffic** (governments can and have banned cryptocurrency mining entirely, e.g., China 2021)
+
+**Assumptions:**
+1. Mining traffic is not globally blocked (it has legitimate economic use)
+2. The adversary performs protocol classification, not per-share hash validation
+3. HMAC sentinel mode is enabled (legacy 0xAA is trivially detectable)
+4. E2E encryption is used for message content (transport layer provides stealth, not confidentiality)
+
+For the full security analysis, see the design paper (Section 7, Appendix A).
 
 ## Project Status
 
@@ -118,7 +150,7 @@ A reference implementation in Node.js is provided in [`reference-impl/`](referen
 - E2E encryption (X25519 + XChaCha20-Poly1305 + HKDF + replay protection)
 - Mining Gate verification (PoW-gated access control)
 - Compact session encryption (prototype) — counter-based HKDF with ChaCha20-Poly1305, 32-byte overhead vs 88-byte standard (-64%)
-- Test suite: 65 tests across 2 suites (`node test.js` + `node crypto/test-xchacha20.js` — no external dependencies)
+- Test suite: 81 tests across 3 suites (`node test.js` + `node crypto/test-xchacha20.js` + `node crypto/test-compact-session.js` — no external dependencies)
 
 **Not included in reference implementation** (specified in paper, planned for a future release):
 - PNG LSB steganographic channel
@@ -131,13 +163,19 @@ A reference implementation in Node.js is provided in [`reference-impl/`](referen
 
 Interoperability test vectors are provided in [`test-vectors/`](test-vectors/) for all protocol versions.
 
-## Demo
+## Pool Implementation
 
-A standalone proof-of-concept pool and client is available at [tnzx-project/tnzx-pool-demo](https://github.com/tnzx-project/tnzx-pool-demo).
+This repository contains the protocol specification and a reference implementation of the *client-side* components (encoding, encryption, Mining Gate verification). The *pool-side* implementation — a VS3-aware Stratum server and a VS3 middleware proxy — is in a separate repository:
 
-It demonstrates the complete VS3 transport round-trip — ghost share encoding, frame reassembly, and bidirectional delivery — running locally with no Monero daemon and no external dependencies. Two parties can exchange messages through the pool using three terminal windows.
+**[tnzx-project/tnzx-pool-demo](https://github.com/tnzx-project/tnzx-pool-demo)** — VS3-aware pool + proxy POC
 
-The proxy has been tested for bidirectional messaging between two miners through standard, unmodified production pools (HashVault for Monero, Braiins Pool for Bitcoin). Timestamped transcripts of all tests are published in the demo repository.
+It includes:
+- `src/stratum-demo.js` — XMRig-compatible Stratum server with ghost share detection, frame reassembly, and bidirectional message routing (~730 lines)
+- `poc/vs3-proxy.js` — VS3 middleware proxy that works with any unmodified Stratum pool (~830 lines)
+- Test suite: proxy interception, HMAC sentinel validation, DPI steganalysis (chi-squared)
+- Timestamped transcripts from production pool tests (HashVault for Monero, Braiins for Bitcoin)
+
+The pool demo runs locally with no Monero daemon and no external dependencies. Two parties can exchange messages through the pool using three terminal windows.
 
 ## Comparison with Existing Systems
 

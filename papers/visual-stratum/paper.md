@@ -195,9 +195,9 @@ Design target combined bandwidth: ~195 KB/s.
 
 **Adaptive modes.** VS3 automatically selects transport strategy based on message type:
 
-- **ANON mode.** Maximum stealth. Uses only L1 (Stratum shares). For private messages, escrow operations, sensitive communications.
-- **BALANCED mode.** L1 primary, bonus channels with random timing delays. For DNS queries, marketplace listings.
-- **SPEED mode.** All channels in parallel. Maximum bandwidth. For file transfers, web hosting.
+- **ANON mode.** Maximum stealth. Uses only L1 (Stratum shares). For private messages, sensitive operations, authenticated transactions.
+- **BALANCED mode.** L1 primary, bonus channels with random timing delays. For general service queries, name resolution.
+- **SPEED mode.** All channels in parallel. Maximum bandwidth. For file transfers, bulk data.
 
 **Timing decorrelation.** In BALANCED mode, fragments sent on bonus channels are delayed by a cryptographically random interval (500-3000ms) to prevent cross-channel correlation.
 

@@ -8,6 +8,31 @@
  * Run: node test.js
  * No dependencies required (uses Node.js assert + crypto).
  *
+ * WHAT THESE TESTS COVER:
+ *   - Stego Core: byte embedding/extraction roundtrips for V1/V2/V3 profiles,
+ *     frame fragmentation and reassembly, edge values (0x00, 0xFF), boundary
+ *     conditions (exact/overflow fragment size), timeout cleanup, invalid input.
+ *   - Crypto: ECDH symmetry, session and one-shot encrypt/decrypt, wrong-key
+ *     rejection, replay detection, ciphertext non-determinism.
+ *   - Mining Gate: state machine transitions (INACTIVE→GRACE→ACTIVE), threshold
+ *     enforcement, unknown miner handling, aggregate stats.
+ *   - Regressions: 8 specific bugs found during S23 internal audit, each with
+ *     a named test that reproduces the original failure scenario.
+ *
+ * WHAT THESE TESTS DO NOT COVER:
+ *   - Timing side channels: no measurement of execution time variance.
+ *     HChaCha20 uses constant-time ARX ops, but this is not verified here.
+ *   - Adversarial frame reassembly: no test for out-of-order fragments,
+ *     duplicate fragment indices, or interleaved messages from different senders.
+ *   - Resource exhaustion: no test that MAX_PENDING_MESSAGES (1000) is enforced
+ *     when an attacker floods incomplete messages.
+ *   - Real Stratum integration: all tests use in-memory objects, not TCP
+ *     connections to a real pool. See tnzx-pool-demo for live pool tests.
+ *   - Key derivation quality: HKDF output is assumed correct per Node.js crypto.
+ *     No test for output bias or domain separation violations.
+ *   - Ed25519→X25519 conversion: tested indirectly via ECDH roundtrip, but
+ *     no test with known test vectors from RFC 7748 for the birational map.
+ *
  * @license LGPL-2.1
  */
 'use strict';

@@ -17,6 +17,7 @@ but decryption always fails on the other. This happened in practice
 | Ghost share HMAC | `tnzx-ghost-v1` | pool stratum engine |
 | Messenger key from wallet | `tnzx-wallet-bound-v3` | miner |
 | Messenger master seed | `tnzx-messenger-master-v1` | miner |
+| Demo E2E encryption | `tnzx-e2e-demo-v1` | pool-demo lib/e2e.js |
 
 ### Authentication data (AAD)
 
