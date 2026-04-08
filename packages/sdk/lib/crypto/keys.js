@@ -39,6 +39,8 @@ function generateKeyPair() {
  * @returns {Buffer} 32-byte shared secret
  */
 function ecdh(myPrivate, theirPublic) {
+  if (!myPrivate || myPrivate.length !== 32) throw new Error('ecdh: private key must be 32 bytes');
+  if (!theirPublic || theirPublic.length !== 32) throw new Error('ecdh: public key must be 32 bytes');
   const privateKeyObj = crypto.createPrivateKey({
     key: Buffer.concat([PKCS8_PREFIX, myPrivate]),
     format: 'der', type: 'pkcs8',
@@ -58,6 +60,7 @@ function ecdh(myPrivate, theirPublic) {
  * @returns {{ key: Buffer, salt: Buffer }}
  */
 function deriveKey(shared, salt, info) {
+  if (!shared || shared.length < 32) throw new Error('deriveKey: shared secret must be >= 32 bytes');
   if (!salt) salt = crypto.randomBytes(SALT_LEN);
   if (!info) info = HKDF_INFO;
   const key = Buffer.from(crypto.hkdfSync('sha256', shared, salt, info, KEY_LEN));

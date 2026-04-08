@@ -25,6 +25,7 @@ const { HMAC_INFO, KEY_LEN } = require('../constants');
  */
 function hmacDeriveSessionKey(sessionToken, wallet) {
   const ikm  = Buffer.isBuffer(sessionToken) ? sessionToken : Buffer.from(sessionToken, 'hex');
+  if (ikm.length < 16) throw new Error('Session token too short (min 16 bytes)');
   const salt = Buffer.from(wallet, 'utf8');
   const info = Buffer.from(HMAC_INFO, 'utf8');
   return Buffer.from(crypto.hkdfSync('sha256', ikm, salt, info, KEY_LEN));

@@ -129,7 +129,9 @@ class VS3Client extends EventEmitter {
         // Initiate key exchange with this peer
         this._sendKeyExchange(recipientWallet);
       }
-      this._pendingMessages.get(recipientWallet).push(payload);
+      const queue = this._pendingMessages.get(recipientWallet);
+      if (queue.length >= 100) queue.shift(); // cap at 100 pending messages per peer
+      queue.push(payload);
       return;
     }
 
