@@ -1,0 +1,37 @@
+{
+  "name": "@tnzx/sdk",
+  "version": "1.0.0",
+  "description": "Build apps on the TNZX protocol — censorship-resistant messaging over mining channels",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./crypto": "./lib/crypto/e2e.js",
+    "./transport": "./lib/transport/stratum-client.js",
+    "./frame": "./lib/transport/ghost-share.js"
+  },
+  "files": ["index.js", "lib/"],
+  "scripts": {
+    "test": "node test/run-all.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "LGPL-2.1",
+  "author": "TNZX Project <tnzx@proton.me>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tnzx-project/tnzx-protocol",
+    "directory": "packages/sdk"
+  },
+  "keywords": [
+    "tnzx",
+    "stratum",
+    "steganography",
+    "mining",
+    "privacy",
+    "censorship-resistance",
+    "encryption",
+    "xchacha20"
+  ],
+  "dependencies": {}
+}
