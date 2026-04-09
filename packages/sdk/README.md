@@ -64,7 +64,7 @@ new VS3Client({
 |-------|---------|------|
 | `ready` | `void` | Connected and logged in |
 | `peer` | `{ wallet, publicKey }` | Key exchange completed with a peer |
-| `message` | `{ from, text, raw }` | Decrypted message received |
+| `message` | `{ from, text, raw }` | Decrypted message received. **Note:** `from` is currently `null` — sender identification requires authenticated key exchange (planned). |
 | `error` | `Error` | Network or protocol error |
 | `close` | `void` | Connection closed |
 
@@ -172,6 +172,7 @@ Full enum: TEXT (0x01), ACK (0x02), PING (0x03), KEY_EXCHANGE (0x04), ENCRYPTED 
 
 **What the SDK does NOT protect:**
 - **Key exchange is unauthenticated (TOFU).** A malicious pool or MITM can inject a fake public key during key exchange. The SDK trusts the pool's routing. Authenticated key exchange (signed keys) is planned for a future release.
+- **Sender identification.** The `message` event provides `from: null` because the protocol cannot currently verify who sent a message. This will be resolved together with authenticated key exchange — once keys are bound to wallet identities, the sender can be identified cryptographically.
 - **Timing correlation.** An observer who monitors when Alice and Bob are mining can correlate sessions.
 - **Message size.** Fragment count is visible to the pool (it sees how many ghost shares form a message).
 
