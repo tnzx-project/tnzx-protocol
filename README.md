@@ -2,6 +2,10 @@
 
 **Open protocols for censorship-resistant communication over cryptocurrency mining channels.**
 
+![Alice and Bob exchanging E2E encrypted messages through a Stratum pool](docs/img/demo-chat.png)
+
+*Two parties exchange encrypted messages hidden in mining traffic. The pool (center) sees only ghost shares with opaque nonce bytes — message content is never visible to the infrastructure. Run it: `node demo-server.js` in [tnzx-pool-demo](https://github.com/tnzx-project/tnzx-pool-demo).*
+
 > **Security notice:** This project is in active research and development. It has not undergone an independent security audit. Do not rely on it to protect life, liberty, or safety without independent verification. The protocol and implementation may contain undiscovered vulnerabilities. We consider honest acknowledgment of these limitations to be essential for a project targeting users in high-risk environments.
 
 ---
@@ -70,12 +74,6 @@ sequenceDiagram
 
     Note over Alice,Bob: Pool sees normal mining traffic
 ```
-
-## Live Demo
-
-![Alice and Bob exchanging E2E encrypted messages through a Stratum pool](docs/img/demo-chat.png)
-
-*Two parties exchange encrypted messages hidden in mining traffic. The pool (center) sees only ghost shares with opaque nonce bytes — message content is never visible. Run it yourself: `node demo-server.js` in [tnzx-pool-demo](https://github.com/tnzx-project/tnzx-pool-demo).*
 
 ## Threat Model
 
