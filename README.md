@@ -55,6 +55,10 @@ graph TB
     D2 -.->|"enforces PoW"| D1
 ```
 
+## Interactive Learn
+
+**[Open the interactive protocol explorer](learn/)** — step through protocol flows visually. See how Alice and Bob exchange keys, send encrypted messages through ghost shares, and how Mining Gate, Proxy mode, and DPI resistance work. No server needed — runs in the browser.
+
 ## How it works
 
 ```mermaid

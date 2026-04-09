@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TNZX Protocol — Interactive Learn</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>TNZX Protocol <span class="subtitle">Interactive Learn</span></h1>
+    <p class="tagline">Explore protocol flows step by step. Click a scenario to begin.</p>
+  </header>
+
+  <nav id="scenario-nav"></nav>
+
+  <main>
+    <!-- STAGE: the "theater" where actors and messages are shown -->
+    <div id="stage">
+      <div id="actors-row"></div>
+      <svg id="message-layer"></svg>
+      <div id="annotations-layer"></div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div id="controls">
+      <button id="btn-prev" onclick="prevStep()" disabled>&larr; Prev</button>
+      <span id="step-counter">Step 0 / 0</span>
+      <button id="btn-next" onclick="nextStep()">Next &rarr;</button>
+      <button id="btn-auto" onclick="toggleAutoPlay()">&#9654; Auto</button>
+    </div>
+
+    <!-- INFO PANEL: explains current step -->
+    <div id="info-panel">
+      <div id="info-title"></div>
+      <div id="info-body"></div>
+      <div id="info-detail"></div>
+    </div>
+
+    <!-- FRAME INSPECTOR: shows byte-level frame details when relevant -->
+    <div id="frame-inspector" style="display:none">
+      <div class="inspector-title">Frame Inspector</div>
+      <div id="frame-hex"></div>
+      <div id="frame-fields"></div>
+    </div>
+  </nav>
+
+  <footer>
+    <p>Part of <a href="https://github.com/tnzx-project/tnzx-protocol">tnzx-protocol</a> &mdash; LGPL-2.1</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
