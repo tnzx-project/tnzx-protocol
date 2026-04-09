@@ -71,6 +71,12 @@ sequenceDiagram
     Note over Alice,Bob: Pool sees normal mining traffic
 ```
 
+## Live Demo
+
+![Alice and Bob exchanging E2E encrypted messages through a Stratum pool](docs/img/demo-chat.png)
+
+*Two parties exchange encrypted messages hidden in mining traffic. The pool (center) sees only ghost shares with opaque nonce bytes — message content is never visible. Run it yourself: `node demo-server.js` in [tnzx-pool-demo](https://github.com/tnzx-project/tnzx-pool-demo).*
+
 ## Threat Model
 
 Visual Stratum is designed to protect communication in environments where standard secure-messaging channels (Signal, Tor, VPNs) are blocked or fingerprinted at the network layer.
