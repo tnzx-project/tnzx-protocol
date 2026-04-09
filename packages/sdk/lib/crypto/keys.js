@@ -41,6 +41,7 @@ function generateKeyPair() {
 function ecdh(myPrivate, theirPublic) {
   if (!myPrivate || myPrivate.length !== 32) throw new Error('ecdh: private key must be 32 bytes');
   if (!theirPublic || theirPublic.length !== 32) throw new Error('ecdh: public key must be 32 bytes');
+  if (theirPublic.every(b => b === 0)) throw new Error('ecdh: rejected all-zeros public key (low-order point)');
   const privateKeyObj = crypto.createPrivateKey({
     key: Buffer.concat([PKCS8_PREFIX, myPrivate]),
     format: 'der', type: 'pkcs8',

@@ -26,11 +26,24 @@ test('buildVS3Frame produces correct header', () => {
   assert.strictEqual(frame.subarray(8).toString('utf8'), 'hello');
 });
 
-test('buildVS3Frame truncates to 247 bytes', () => {
+test('buildVS3Frame rejects payload > 247 bytes', () => {
   const big = Buffer.alloc(300, 0x42);
-  const frame = buildVS3Frame(big);
+  assert.throws(() => buildVS3Frame(big), /exceeds single-frame limit/);
+});
+
+test('buildVS3Frame accepts 247-byte payload', () => {
+  const max = Buffer.alloc(247, 0x42);
+  const frame = buildVS3Frame(max);
   assert.strictEqual(frame[7], 247);
   assert.strictEqual(frame.length, 8 + 247);
+});
+
+test('buildVS3Frame rejects null payload', () => {
+  assert.throws(() => buildVS3Frame(null), /must not be null/);
+});
+
+test('buildVS3Frame rejects msgType > 255', () => {
+  assert.throws(() => buildVS3Frame('test', 256), /must be 0-255/);
 });
 
 test('chunkFrame splits into 5-byte chunks', () => {

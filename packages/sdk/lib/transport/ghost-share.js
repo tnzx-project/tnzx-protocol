@@ -28,9 +28,13 @@ const crypto = require('crypto');
  * @returns {Buffer} Complete VS3 frame (header + payload)
  */
 function buildVS3Frame(payload, msgType = 0x01) {
-  const buf = Buffer.isBuffer(payload)
-    ? payload.slice(0, 247)
-    : Buffer.from(payload, 'utf8').slice(0, 247);
+  if (payload == null) throw new Error('buildVS3Frame: payload must not be null/undefined');
+  if (typeof msgType !== 'number' || msgType < 0 || msgType > 255) {
+    throw new Error('buildVS3Frame: msgType must be 0-255');
+  }
+  const raw = Buffer.isBuffer(payload) ? payload : Buffer.from(payload, 'utf8');
+  if (raw.length > 247) throw new Error(`buildVS3Frame: payload ${raw.length}B exceeds single-frame limit (247B). Use fragmentation for larger messages.`);
+  const buf = raw;
   const msgId = crypto.randomBytes(2).readUInt16BE(0);
   return Buffer.concat([
     Buffer.from([0xAA, 0x03, msgType, (msgId >> 8) & 0xFF, msgId & 0xFF, 0x00, 0x01, buf.length]),
