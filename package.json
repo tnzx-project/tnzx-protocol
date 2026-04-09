@@ -1,0 +1,13 @@
+{
+  "name": "@tnzx/protocol-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Monorepo for the Visual Stratum protocol suite",
+  "license": "LGPL-2.1",
+  "scripts": {
+    "test": "node reference-impl/test.js && node reference-impl/crypto/test-xchacha20.js && node reference-impl/crypto/test-compact-session.js && node packages/sdk/test/run-all.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
