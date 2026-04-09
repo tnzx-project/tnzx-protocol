@@ -279,7 +279,7 @@ aid debugging during protocol evolution.
 | LZ4 compression | No | No | N/A | Specified |
 | Timing decorrelation | No | No | N/A | Specified |
 | High-bandwidth profiles (BURST/GHOST/TURBO) | No | No | N/A | Specified |
-| Encrypted Type Envelope | No | No | N/A | Specified |
+| Encrypted Type Envelope | Yes | No | N/A | Implemented (ref-impl + SDK) |
 
 Components marked "Specified" are fully described in this document and the
 design paper, with test vectors where applicable. Implementation is planned
