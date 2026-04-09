@@ -232,7 +232,13 @@ A reference implementation in Node.js is provided in [`reference-impl/`](referen
 
 ## SDK — `@tnzx/sdk`
 
-A developer SDK is provided in [`packages/sdk/`](packages/sdk/). It wraps the protocol primitives into a high-level API for building applications on TNZX.
+[![npm](https://img.shields.io/npm/v/@tnzx/sdk)](https://www.npmjs.com/package/@tnzx/sdk)
+
+```
+npm install @tnzx/sdk
+```
+
+A developer SDK that wraps the protocol primitives into a high-level API for building applications on TNZX.
 
 **Quick start** (10 lines):
 
