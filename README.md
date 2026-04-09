@@ -1,5 +1,7 @@
 # TNZX Protocol Suite
 
+[![tests](https://github.com/tnzx-project/tnzx-protocol/actions/workflows/tests.yml/badge.svg)](https://github.com/tnzx-project/tnzx-protocol/actions/workflows/tests.yml)
+
 **Open protocols for censorship-resistant communication over cryptocurrency mining channels.**
 
 ![Alice and Bob exchanging E2E encrypted messages through a Stratum pool](docs/img/demo-chat.png)

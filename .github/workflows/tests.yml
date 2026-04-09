@@ -1,0 +1,38 @@
+name: tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  reference-impl:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Reference impl tests
+        run: |
+          cd reference-impl
+          node test.js
+          node crypto/test-xchacha20.js
+          node crypto/test-compact-session.js
+
+  sdk:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: SDK tests
+        run: node packages/sdk/test/run-all.js
