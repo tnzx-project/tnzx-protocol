@@ -37,9 +37,13 @@ class VS3Client extends EventEmitter {
    */
   constructor(options) {
     super();
-    const [host, portStr] = options.pool.split(':');
-    this._host = host;
-    this._port = parseInt(portStr, 10);
+    const parts = options.pool.split(':');
+    if (parts.length < 2 || !parts[1]) throw new Error('pool must be "host:port"');
+    this._host = parts[0];
+    this._port = parseInt(parts[1], 10);
+    if (isNaN(this._port) || this._port < 1 || this._port > 65535) {
+      throw new Error(`Invalid port: ${parts[1]}`);
+    }
     this._wallet = options.wallet;
     this._ghostIntervalMs = options.ghostIntervalMs;
 
@@ -157,9 +161,10 @@ class VS3Client extends EventEmitter {
    * Prevents ghost share interleaving when multiple frames are sent rapidly.
    */
   _queueSend(frame, recipientWallet) {
+    if (!this._stratum) return; // not connected yet — frame is lost (message was queued for later)
     this._sendQueue = this._sendQueue
       .then(() => this._stratum.sendFrame(frame, recipientWallet))
-      .catch(() => {});
+      .catch((e) => this.emit('error', e));
   }
 
   _handleFrame(type, payload) {
@@ -231,8 +236,9 @@ class VS3Client extends EventEmitter {
         text: plaintext.toString('utf8'),
         raw: plaintext,
       });
-    } catch (err) {
-      this.emit('error', new Error(`Decryption failed: ${err.message}`));
+    } catch {
+      // Expected for frames not addressed to us, or corrupted data.
+      // Not surfaced as 'error' to avoid crashing without listener.
     }
   }
 

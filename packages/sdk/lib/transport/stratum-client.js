@@ -56,6 +56,13 @@ class StratumClient extends EventEmitter {
    * Open TCP connection and send Stratum login.
    */
   connect() {
+    if (this._sock) throw new Error('Already connected — call disconnect() first');
+    this._loginTimer = setTimeout(() => {
+      if (!this._connected) {
+        this.emit('error', new Error('Login timeout (10s)'));
+        this.disconnect();
+      }
+    }, 10000);
     this._sock = net.connect(this.port, this.host, () => {
       this._sock.write(JSON.stringify({
         id: 1, jsonrpc: '2.0', method: 'login',
@@ -75,8 +82,10 @@ class StratumClient extends EventEmitter {
    * Close the connection.
    */
   disconnect() {
+    if (this._loginTimer) { clearTimeout(this._loginTimer); this._loginTimer = null; }
     if (this._sendInterval) { clearInterval(this._sendInterval); this._sendInterval = null; }
-    if (this._sock) this._sock.destroy();
+    if (this._sock) { this._sock.destroy(); this._sock = null; }
+    this._connected = false;
   }
 
   /**
@@ -167,6 +176,7 @@ class StratumClient extends EventEmitter {
 
         if (this._jobId && !this._connected) {
           this._connected = true;
+          if (this._loginTimer) { clearTimeout(this._loginTimer); this._loginTimer = null; }
           this.emit('ready', { minerId: this._minerId, jobId: this._jobId });
         }
       }
@@ -177,6 +187,7 @@ class StratumClient extends EventEmitter {
 
         if (!this._connected && this._jobId && this._minerId) {
           this._connected = true;
+          if (this._loginTimer) { clearTimeout(this._loginTimer); this._loginTimer = null; }
           this.emit('ready', { minerId: this._minerId, jobId: this._jobId });
         }
 
