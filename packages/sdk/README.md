@@ -1,8 +1,16 @@
 # @tnzx/sdk
 
+[![npm](https://img.shields.io/npm/v/@tnzx/sdk)](https://www.npmjs.com/package/@tnzx/sdk)
+
 Developer SDK for the TNZX protocol — censorship-resistant messaging over cryptocurrency mining channels.
 
 Zero external dependencies. Node.js >= 18.
+
+## Install
+
+```
+npm install @tnzx/sdk
+```
 
 ## Quick Start
 
