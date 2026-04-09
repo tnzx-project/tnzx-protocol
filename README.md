@@ -17,31 +17,34 @@ The key innovation is **Mining Gate**: communication bandwidth is mathematically
 ```mermaid
 graph TB
     subgraph "Application Layer"
-        A1[Chat] 
-        A2[DNS]
-        A3[Services]
-        A4[Falo]
+        A1[Chat]
+        A2["DNS (planned)"]
+        A3["Services (planned)"]
+        A4["Falo (design)"]
     end
     subgraph "SDK — @tnzx/sdk"
-        B1[VS3Client<br/>10-line API]
-        B2[StratumClient<br/>TCP transport]
-        B3[E2E Crypto<br/>XChaCha20-Poly1305]
+        B1["VS3Client — high-level API"]
+        B2["StratumClient — TCP transport"]
+        B3["E2E Crypto — XChaCha20-Poly1305"]
+        B4["Ghost Share Encoder"]
     end
-    subgraph "Protocol Layer"
-        C1[Stego Encoder/Decoder<br/>VS1 · VS2 · VS3]
-        C2[Encrypted Envelope<br/>all frames 0x05]
-        C3[Mining Gate<br/>PoW access control]
+    subgraph "Protocol Primitives (reference-impl)"
+        C1["Stego Encoder/Decoder — VS1 · VS2 · VS3"]
+        C2["Encrypted Envelope — type hidden inside 0x05"]
     end
-    subgraph "Network"
-        D1[Stratum Pool / VS3 Proxy]
+    subgraph "Pool Side (separate repo)"
+        D1["Stratum Pool / VS3 Proxy"]
+        D2["Mining Gate — PoW access control"]
     end
 
     A1 & A2 & A3 & A4 --> B1
-    B1 --> B2
     B1 --> B3
-    B2 --> C1
+    B1 --> B2
+    B2 --> B4
     B3 --> C2
-    C1 & C2 & C3 --> D1
+    B4 --> D1
+    C1 -.->|"used by pool"| D1
+    D2 -.->|"enforces PoW"| D1
 ```
 
 ## How it works
