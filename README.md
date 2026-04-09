@@ -4,7 +4,9 @@
 
 ![Alice and Bob exchanging E2E encrypted messages through a Stratum pool](docs/img/demo-chat.png)
 
-*Two parties exchange encrypted messages hidden in mining traffic. The pool (center) sees only ghost shares with opaque nonce bytes — message content is never visible to the infrastructure. Run it: `node demo-server.js` in [tnzx-pool-demo](https://github.com/tnzx-project/tnzx-pool-demo).*
+![CLI demo — pool log (left) shows only ghost shares and 0x05 frames; decrypted conversation (right)](docs/img/demo-chat2.png)
+
+*Left: the Stratum pool sees only ghost shares (`nonce=aa...`) and encrypted frames (`type=0x05`). Right: Alice and Bob exchange sensitive messages — decrypted only on the endpoints. The pool operator cannot read, filter, or censor the content. Run it: `node run-demo.js` in [tnzx-pool-demo](https://github.com/tnzx-project/tnzx-pool-demo).*
 
 > **Security notice:** This project is in active research and development. It has not undergone an independent security audit. Do not rely on it to protect life, liberty, or safety without independent verification. The protocol and implementation may contain undiscovered vulnerabilities. We consider honest acknowledgment of these limitations to be essential for a project targeting users in high-risk environments.
 
