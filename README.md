@@ -57,7 +57,9 @@ graph TB
 
 ## Interactive Learn
 
-**[Open the interactive protocol explorer](learn/)** — step through protocol flows visually. See how Alice and Bob exchange keys, send encrypted messages through ghost shares, and how Mining Gate, Proxy mode, and DPI resistance work. No server needed — runs in the browser.
+**[Open the interactive protocol explorer](https://tnzx-project.github.io/tnzx-protocol/learn/)** — step through protocol flows visually. See how Alice and Bob exchange keys, send encrypted messages through ghost shares, and how Mining Gate, Proxy mode, and DPI resistance work. No server needed — runs in the browser.
+
+**[Open the messaging flow demo](https://tnzx-project.github.io/tnzx-pool-demo/demo.html)** — animated walkthrough of the full messaging flow: Mining Gate, key exchange, encrypted delivery, ghost shares, envelope visualization.
 
 ## How it works
 
