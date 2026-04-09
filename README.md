@@ -12,6 +12,62 @@ TNZX is a family of protocols that exploit the inherent randomness of cryptocurr
 
 The key innovation is **Mining Gate**: communication bandwidth is mathematically bound to proof-of-work. You must mine to message. This creates anti-spam, economic sustainability, and censorship resistance in a single mechanism.
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph "Application Layer"
+        A1[Chat] 
+        A2[DNS]
+        A3[Services]
+        A4[Falo]
+    end
+    subgraph "SDK — @tnzx/sdk"
+        B1[VS3Client<br/>10-line API]
+        B2[StratumClient<br/>TCP transport]
+        B3[E2E Crypto<br/>XChaCha20-Poly1305]
+    end
+    subgraph "Protocol Layer"
+        C1[Stego Encoder/Decoder<br/>VS1 · VS2 · VS3]
+        C2[Encrypted Envelope<br/>all frames 0x05]
+        C3[Mining Gate<br/>PoW access control]
+    end
+    subgraph "Network"
+        D1[Stratum Pool / VS3 Proxy]
+    end
+
+    A1 & A2 & A3 & A4 --> B1
+    B1 --> B2
+    B1 --> B3
+    B2 --> C1
+    B3 --> C2
+    C1 & C2 & C3 --> D1
+```
+
+## How it works
+
+```mermaid
+sequenceDiagram
+    participant Alice
+    participant Pool as Stratum Pool
+    participant Bob
+
+    Note over Alice,Bob: Key Exchange (automatic)
+    Alice->>Pool: Ghost share [KEY_EXCHANGE + Alice pubkey]
+    Pool->>Bob: Job notification with VS3 frame
+    Bob->>Pool: Ghost share [KEY_EXCHANGE + Bob pubkey]
+    Pool->>Alice: Job notification with VS3 frame
+
+    Note over Alice,Bob: Encrypted messaging
+    Alice->>Alice: encrypt(msg, Bob_pubkey)
+    Alice->>Pool: Ghost shares [type 0x05 ENCRYPTED]
+    Note right of Pool: Pool sees only opaque<br/>0x05 frames — cannot<br/>read content or type
+    Pool->>Bob: Job notification with VS3 frame
+    Bob->>Bob: decrypt(payload, Bob_privkey)
+
+    Note over Alice,Bob: Pool sees normal mining traffic
+```
+
 ## Threat Model
 
 Visual Stratum is designed to protect communication in environments where standard secure-messaging channels (Signal, Tor, VPNs) are blocked or fingerprinted at the network layer.
@@ -51,7 +107,10 @@ This repository contains protocol specifications, a design paper, and a referenc
 | Stratum steganographic embedding (VS1/VS3-Monero) | **Implemented and tested** | Core encoder/decoder in reference impl |
 | Stratum steganographic embedding (VS2 Bitcoin-style) | **Specified; demonstrated in pool demo proxy** | Encoding via extranonce2; not in reference impl |
 | E2E encryption (X25519 + XChaCha20-Poly1305) | **Implemented and tested** | Session and one-shot modes, replay protection |
+| Encrypted type envelope | **Implemented and tested** | All frames use 0x05 ENCRYPTED externally |
 | Mining Gate (PoW-gated access) | **Implemented and tested** | State machine, adaptive threshold |
+| Developer SDK (`@tnzx/sdk`) | **Implemented and tested** | VS3Client, StratumClient, 40 tests |
+| HMAC sentinel (anti-DPI) | **Implemented and tested** | Replaces detectable 0xAA with HMAC-tagged nonce |
 | PNG LSB channel (VS1) | **Archived** | Proof-of-concept only; superseded by Stratum channel |
 | WebSocket / HTTP/2 channels | **Specified** | Design complete, not in reference impl |
 | Multi-channel adaptive routing | **Specified** | Design complete, not in reference impl |
@@ -159,6 +218,34 @@ A reference implementation in Node.js is provided in [`reference-impl/`](referen
 - LZ4 compression and padding
 - Multi-channel routing and timing decorrelation
 - Dummy traffic generation
+
+## SDK — `@tnzx/sdk`
+
+A developer SDK is provided in [`packages/sdk/`](packages/sdk/). It wraps the protocol primitives into a high-level API for building applications on TNZX.
+
+**Quick start** (10 lines):
+
+```js
+const { VS3Client } = require('@tnzx/sdk');
+
+const client = new VS3Client({ pool: 'host:3333', wallet: '4...' });
+
+client.on('ready', () => console.log('Connected'));
+client.on('peer', ({ wallet }) => client.send(wallet, 'Hello TNZX'));
+client.on('message', ({ text }) => console.log(text));
+client.connect();
+```
+
+**Two-tier API:**
+
+| Tier | Class | Use case |
+|------|-------|----------|
+| High-level | `VS3Client` | Auto key exchange, auto encryption, event-driven messaging |
+| Low-level | `StratumClient` | Manual frame control, custom MSG_TYPEs, pool integration |
+
+**Also exports:** `encryptOneShot`, `decryptOneShot`, `generateKeyPair`, `buildVS3Frame`, `hmacSentinel`, `MSG_TYPE`
+
+Zero external dependencies. Node.js >= 18. 40 tests across 6 suites. See [`packages/sdk/examples/`](packages/sdk/examples/) for working examples.
 
 ## Test Vectors
 

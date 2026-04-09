@@ -1,5 +1,30 @@
 # Changelog
 
+## [sdk-1.0.0] — 2026-04-09
+
+### Added
+- **`@tnzx/sdk`** — Developer SDK in `packages/sdk/`. Two-tier API:
+  - `VS3Client`: high-level (auto key exchange, auto encryption, event-driven)
+  - `StratumClient`: low-level Stratum transport with HMAC sentinel support
+- E2E crypto: `encryptOneShot`/`decryptOneShot` with reference-impl wire format
+  (`replayId(16) + ephPub(32) + salt(32) + nonce(24) + ct + tag(16)`, 120-byte overhead)
+- Ghost share encoding: `buildVS3Frame`, `chunkFrame`, `encodeGhostShare`
+- HMAC sentinel: `hmacDeriveSessionKey`, `hmacSentinel`, `hmacVerify`
+- Serialized send queue prevents ghost share interleaving
+- Examples: `examples/chat.js` (interactive), `examples/e2e-test.js` (automated smoke test)
+- Mock Stratum server for integration testing
+
+### Security (SDK audit — 2 rounds)
+- Round 1: fixed 1 CRITICAL (buffer DoS), 4 HIGH (shared secret zeroization, replay cache
+  memory leak, key validation, ecdh input validation), 5 MEDIUM
+- Round 2: fixed 13 additional bugs — null payload crash, msgType overflow, double connect,
+  login timeout, silent error swallowing, pool string validation, low-order point rejection
+
+### Verified
+- 40 SDK tests across 6 suites (crypto, keys, ghost-share, HMAC, StratumClient, VS3Client)
+- E2E smoke test: 5-message bidirectional conversation through mock pool
+- Real pool integration test: verified against stratum-demo.js
+
 ## [draft-02] — 2026-04-08
 
 ### Added (Implementation)
