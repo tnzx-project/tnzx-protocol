@@ -96,7 +96,7 @@ Visual Stratum is designed to protect communication in environments where standa
 - **Device compromise** (malware on the endpoint sees plaintext before encryption)
 - **Nation-state signals intelligence** with per-connection hash verification (ghost shares have zero PoW and are detectable by an observer who validates every share hash)
 - **Global traffic analysis** correlating sender/receiver mining sessions by timing
-- **Pool operator who actively modifies traffic** (integrity attacks on the relay path)
+- **Malicious pool operator (MITM)** — key exchange is currently unauthenticated (trust-on-first-use). A pool operator who actively modifies traffic can inject fake public keys and read messages. Authenticated key exchange is planned.
 - **Blocking all mining traffic** (governments can and have banned cryptocurrency mining entirely, e.g., China 2021)
 
 **Assumptions:**
