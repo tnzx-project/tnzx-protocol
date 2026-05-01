@@ -11,3 +11,8 @@ Thumbs.db
 .vscode/
 .idea/
 .claude/
+drafts/
+
+#  (D11+) — non pubblicare
+IMPLEMENTATION-STATUS*.md
+protocols/*/IMPLEMENTATION-STATUS*.md
