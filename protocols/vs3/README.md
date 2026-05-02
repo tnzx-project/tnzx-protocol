@@ -326,6 +326,43 @@ Implementations MUST enforce at least `MAX_PENDING_MESSAGES` and
 `MESSAGE_TIMEOUT_MS` to bound memory usage. Implementations SHOULD log
 discarded messages for operational monitoring.
 
+## RandomX Compatibility
+
+VS3 is designed and tested against **RandomX** (Monero's PoW algorithm). The
+protocol makes no assumptions about the hash function itself — it operates
+entirely at the Stratum layer — but the following properties are relevant:
+
+### Current: RandomX v1 (mainnet 2026)
+
+- Full CPU-mineable nonce control (4 bytes)
+- ntime field accessible (4 bytes, high 16 bits preserved)
+- Mining Gate operates on Stratum-reported difficulty
+- Ghost shares at difficulty 1 are indistinguishable from real low-diff shares
+
+### Future: RandomX v2 (proposed)
+
+Monero issue [#8827](https://github.com/monero-project/monero/issues/8827)
+proposes adding a double Blake2b hash with a 32-byte intermediate commitment.
+The RandomX-side PR (`tevador/RandomX#265`) is merged; the Monero core PR is
+pending.
+
+If adopted at a future hard fork, the intermediate hash enables **rapid partial
+verification** (~300ns vs ~15ms for full RandomX). This is relevant for:
+
+- Near-miss share detection (shares that almost meet target)
+- Faster ghost share validation on high-volume pools
+- Lower-latency share validation paths
+
+**VS3 requires no changes** regardless of RandomX version. The protocol
+operates on Stratum share semantics, not on the PoW hash internals. RandomX v2
+compatibility is automatic.
+
+### Algorithm-Agnostic Design
+
+Mining Gate and ghost share detection are algorithm-agnostic (tested with
+RandomX and SHA-256d). Any Stratum-compatible PoW chain is a valid transport.
+See Appendix C of the design paper for cross-chain analysis.
+
 ## Additional Resources
 
 - Full protocol specification: see `papers/visual-stratum/paper.md` (Sections 3.3 and 6)

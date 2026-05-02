@@ -21,7 +21,9 @@ We publish this design document to invite review, critique, and collaboration. *
 
 Of particular interest is Section 10 (Psychology and Motivation), which explores the human dimension of anonymous coordination — a topic rarely addressed in technical protocol literature.
 
-Falo combines zero-knowledge membership proofs (Merkle tree commitments), ring signatures for anonymous messaging, blind vouching for member admission, and a novel "Proof of Time" anti-Sybil mechanism based on sustained cryptocurrency mining history. The system uses Visual Stratum 2 (VS2) [1] as its transport layer, hiding all coordination traffic within legitimate mining share submissions.
+Falo combines zero-knowledge membership proofs (Merkle tree commitments), ring signatures for anonymous messaging, blind vouching for member admission, and a "Proof of Time" anti-Sybil mechanism[^pot] based on sustained cryptocurrency mining history. To our knowledge this is novel as a Sybil-cost mechanism; we propose it as a design rather than a primitive.
+
+[^pot]: Not to be confused with Hyperledger Sawtooth's Proof of Elapsed Time (PoET) [Chen et al. 2017], which is an Intel-SGX-based consensus mechanism, or with Filecoin/Chia Proof-of-Space-Time (PoSt/PoST) [Fisch, EUROCRYPT 2019]. Falo's PoT is a per-identity sustained-mining commitment used as a Sybil cost, not a consensus mechanism. The system uses Visual Stratum 2 (VS2) [1] as its transport layer, hiding all coordination traffic within legitimate mining share submissions.
 
 Falo explicitly does not claim invulnerability. Instead, it raises the cost of attacking organized groups from "trivial" to "expensive, risky, and non-scalable," while honestly communicating its limitations to users.
 

@@ -35,7 +35,7 @@ client.connect();
 | Send pacing | 150ms default | Configurable via `ghostIntervalMs` |
 | Key exchange | **Unauthenticated (TOFU)** | A malicious pool can MITM the key exchange. See Threat Model below. |
 
-Messages longer than 127 bytes will be rejected with an error. Multi-frame fragmentation is planned for a future release.
+The SDK currently enforces a single-frame limit of 127 bytes per message. The underlying protocol supports multi-frame fragmentation (up to 6400 bytes across 50 fragments) — see the [VS3 specification](https://github.com/tnzx-project/visual-stratum-spec). SDK-level fragmentation will be exposed in a future release.
 
 ## API Reference
 

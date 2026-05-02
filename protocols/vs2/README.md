@@ -11,7 +11,7 @@ Visual Stratum 2 extends VS1 with two critical innovations:
 1. **Mining Gate** — Communication bandwidth is bound to active proof-of-work
 2. **Stratum embedding** — Data hidden directly in mining share fields (upload channel)
 
-Together, these create the first communication protocol that is simultaneously censorship-resistant, spam-resistant, and economically self-sustaining.
+Together, these aim to combine — to our knowledge for the first time in a single deployed protocol — censorship resistance, PoW-gated spam resistance, and economic self-sustainability via mining fees. See the design paper §2 (Related Work) for prior-art comparison.
 
 ## What's New vs VS1
 

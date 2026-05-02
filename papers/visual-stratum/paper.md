@@ -614,7 +614,9 @@ Mining Gate extends proof-of-work from a one-time cost (hashcash) to a sustained
 
 Future work includes formal verification of the protocol, post-quantum key exchange via hybrid construction (classical ECDH combined with a PQC KEM on a non-steganographic channel — see Section 9.3), cross-pool federation for message routing across independent mining pools, and independent third-party security audit.
 
-We are also developing Falo, an anonymous coordination system built on VS2 transport that uses zero-knowledge membership proofs, ring signatures, and a novel "Proof of Time" anti-Sybil mechanism based on sustained mining history rather than financial stake. A design document is available in this repository. Falo explores an under-examined question in privacy tool design: the psychology of anonymous organizing — how technical protection affects the human courage to coordinate (see Falo design document, Section 10).
+We are also developing Falo, an anonymous coordination system built on VS2 transport that uses zero-knowledge membership proofs, ring signatures, and a "Proof of Time" anti-Sybil mechanism[^pot] based on sustained mining history rather than financial stake. To our knowledge this is novel as a Sybil-cost mechanism; we propose it as a design rather than a primitive.
+
+[^pot]: Not to be confused with Hyperledger Sawtooth's Proof of Elapsed Time (PoET) [Chen et al. 2017], which is an Intel-SGX-based consensus mechanism, or with Filecoin/Chia Proof-of-Space-Time (PoSt/PoST) [Fisch, EUROCRYPT 2019]. Falo's PoT is a per-identity sustained-mining commitment used as a Sybil cost, not a consensus mechanism. A design document is available in this repository. Falo explores an under-examined question in privacy tool design: the psychology of anonymous organizing — how technical protection affects the human courage to coordinate (see Falo design document, Section 10).
 
 ---
 

@@ -16,3 +16,12 @@ drafts/
 #  (D11+) — non pubblicare
 IMPLEMENTATION-STATUS*.md
 protocols/*/IMPLEMENTATION-STATUS*.md
+
+# 
+grafica/
+outreach/
+
+#  (decisione D11+): codice e spec restano locali
+# finche' non viene presa una decisione esplicita di pubblicazione.
+protocols/vs5/
+protocols/sec-identity/
