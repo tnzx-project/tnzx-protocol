@@ -25,3 +25,11 @@ outreach/
 # finche' non viene presa una decisione esplicita di pubblicazione.
 protocols/vs5/
 protocols/sec-identity/
+
+# Staging area per  (, D14).
+# Tutto cio' che vive in staging/ e' in attesa di promozione a tracked
+# tramite `git mv staging/X src/X` quando  viene tolto.
+# Il README.md di staging/ e' invece committato (documenta il pattern).
+# NB: staging/* (con wildcard) per permettere l'eccezione !README.md.
+staging/*
+!staging/README.md
