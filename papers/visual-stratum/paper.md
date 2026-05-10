@@ -34,7 +34,7 @@ Private communication systems face a fundamental tension between security and de
 
 2. **Active blocking.** Governments routinely block messaging applications by identifying their network signatures. Iran, China, Russia, and others have blocked Telegram, Signal, and Tor at various times [2].
 
-3. **Traffic analysis.** Even over Tor, message timing and volume patterns enable correlation attacks that can deanonymize users [3].
+3. **Traffic analysis.** Even over Tor, message timing and volume patterns enable correlation attacks that can deanonymize users [3]; deep-learning–based attacks such as DeepCorr [31] further reduce the data required for successful flow correlation.
 
 4. **Plausible deniability.** Users of privacy tools cannot deny the existence of their communications — the use of Tor or Signal is itself observable and potentially incriminating in hostile jurisdictions.
 
@@ -77,6 +77,8 @@ We believe publishing specifications alongside working implementations — rathe
 
 ### 2.1 Network Steganography
 
+The theoretical foundations of covert channels date back to Lampson's confinement problem [25] and Simmons' subliminal channel [26]. Cabuk et al. [27] formalized timing-based covert channels in IP networks. Comprehensive surveys [28] and textbook treatments [29] catalog the field across protocol layers and detection techniques.
+
 Network steganography hides data within legitimate network protocol fields. Prior work has explored covert channels in TCP/IP headers [4], HTTP responses [5], DNS queries [6], and VoIP streams [7]. These approaches share a limitation: the cover protocols serve no economic purpose, making their traffic volume anomalous if sustained.
 
 Visual Stratum addresses this directly: mining traffic has independent economic value regardless of any communication function it may carry. This property is developed further in Section 2.4.
@@ -101,7 +103,7 @@ Visual Stratum differs from these approaches in a key respect: it operates at th
 
 Several systems disguise censored traffic as permitted protocols:
 
-**StegoTorus** [14] tunnels Tor traffic inside steganographically modified HTTP streams. **FreeWave** [15] embeds data in VoIP traffic. **DeltaShaper** [16] uses video streaming as cover. These systems represent significant advances in censorship circumvention.
+**StegoTorus** [14] tunnels Tor traffic inside steganographically modified HTTP streams. **FreeWave** [15] embeds data in VoIP traffic. **DeltaShaper** [16] and **CovertCast** [30] use video streaming as cover. These systems represent significant advances in censorship circumvention.
 
 These systems share a key limitation: **their cover traffic is synthetic**. An ISP observing sustained HTTP traffic to an unusual endpoint, or a VoIP call that never ends, may flag the traffic as anomalous even without decrypting it. The cover traffic has no independent purpose — it exists solely to carry the covert channel.
 
@@ -120,6 +122,8 @@ Visual Stratum differs fundamentally: the cover traffic (mining) has **independe
 ### 2.6 Proof-of-Work for Spam Prevention
 
 Hashcash [13] introduced proof-of-work as spam prevention for email, requiring a one-time computation per message. Mining Gate extends this concept from *per-message* cost to *sustained* cost: the user must maintain continuous mining activity, not merely compute a single hash. This prevents burst-and-stop attacks and creates ongoing economic commitment.
+
+Alternative consensus and resource-commitment mechanisms — Proof of Elapsed Time (PoET) [32] and Proof of Space-Time (PoSt) [33] — substitute computation with trusted execution time or storage commitments, respectively. They are not directly applicable to anti-spam in our setting because the cover traffic of Visual Stratum (mining shares) requires the same hash work that PoW already provides; PoET/PoSt are listed here for completeness of the design space.
 
 ### 2.7 Comparison Summary
 
@@ -669,6 +673,24 @@ We are also developing Falo, an anonymous coordination system built on VS2 trans
 [23] Frkat, D., Annessi, R., and Zseby, T. "Chainchannels: Private botnet communication over public blockchains." *IEEE International Conference on Blockchain and Cryptocurrency (ICBC)*, 2020.
 
 [24] Cao, Y., et al. "A survey of blockchain-based information hiding." *Journal of Information Security and Applications*, 71:103385, 2023.
+
+[25] Lampson, B.W. "A Note on the Confinement Problem." *Communications of the ACM*, 16(10):613–615, 1973.
+
+[26] Simmons, G.J. "The Prisoners' Problem and the Subliminal Channel." *Advances in Cryptology: Proceedings of CRYPTO '83*, pp. 51–67, 1984.
+
+[27] Cabuk, S., Brodley, C.E., and Shields, C. "IP Covert Timing Channels: Design and Detection." *ACM CCS*, 2004.
+
+[28] Wendzel, S., Zander, S., Fechner, B., and Herdin, C. "Pattern-Based Survey and Categorization of Network Covert Channel Techniques." *ACM Computing Surveys*, 47(3):50:1–50:26, 2015.
+
+[29] Mazurczyk, W., Wendzel, S., Zander, S., Houmansadr, A., and Szczypiorski, K. *Information Hiding in Communication Networks: Fundamentals, Mechanisms, Applications, and Countermeasures*. Wiley-IEEE Press, 2016.
+
+[30] McPherson, R., Houmansadr, A., and Shmatikov, V. "CovertCast: Using Live Streaming to Evade Internet Censorship." *Proceedings on Privacy Enhancing Technologies (PoPETs)*, 2016(3):318–335, 2016.
+
+[31] Nasr, M., Bahramali, A., and Houmansadr, A. "DeepCorr: Strong Flow Correlation Attacks on Tor Using Deep Learning." *ACM CCS*, 2018.
+
+[32] Chen, L., Xu, L., Shah, N., Gao, Z., Lu, Y., and Shi, W. "On Security Analysis of Proof of Elapsed Time (PoET)." *International Symposium on Stabilization, Safety, and Security of Distributed Systems (SSS)*, pp. 282–297, 2017.
+
+[33] Fisch, B. "Tight Proofs of Space and Replication." *EUROCRYPT*, pp. 324–360, 2019.
 
 ---
 
