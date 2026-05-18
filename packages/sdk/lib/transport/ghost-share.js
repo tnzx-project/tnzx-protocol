@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LGPL-2.1-only
 'use strict';
 /**
  * VS3 Frame encoding utilities — shared across POC, tests, and demo

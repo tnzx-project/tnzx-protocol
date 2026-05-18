@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: LGPL-2.1-only
 /**
  * Visual Stratum — Reference Implementation Tests
  *

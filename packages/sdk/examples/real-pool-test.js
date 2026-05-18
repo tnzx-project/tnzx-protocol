@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: LGPL-2.1-only
 'use strict';
 /**
  * SDK integration test against REAL pool (stratum-demo.js)

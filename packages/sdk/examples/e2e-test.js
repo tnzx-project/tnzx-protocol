@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: LGPL-2.1-only
 'use strict';
 /**
  * SDK smoke test — fully automated Alice↔Bob E2E encrypted conversation.

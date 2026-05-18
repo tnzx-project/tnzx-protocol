@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LGPL-2.1-only
 /**
  * test-compact-session.js — Tests for Compact Session Encryption
  *

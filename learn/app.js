@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LGPL-2.1-only
 // TNZX Protocol — Interactive Learn
 
 // ===== ACTOR DEFINITIONS =====
@@ -65,7 +66,7 @@ const SCENARIOS = [
       },
       {
         title: 'Bob receives Alice\'s public key',
-        body: 'Bob parses the VS3 frame, sees <code>type = KEY_EXCHANGE</code>, and stores Alice\'s X25519 public key. Bob now generates his own keypair and sends his public key back through the same mechanism.',
+        body: 'Bob parses the VS3 frame, sees <code>type = KEY_EXCHANGE</code>, and stores Alice\'s X25519 public key. Bob now generates his own keypair, and sends his public key back through the same mechanism.',
         detail: 'Bob receives: frame.type = 0x04, frame.payload = Alice_pubkey (32 bytes)\nBob stores: peers["4...Alice"] = { publicKey: Alice_pubkey }\nBob generates own keypair and queues KEY_EXCHANGE response',
         messages: [{ from: 'bob', to: 'pool', label: 'Ghost shares [KEY_EXCHANGE + Bob pubkey]', style: 'encrypt', y: 200 }],
         highlight: ['bob', 'pool']

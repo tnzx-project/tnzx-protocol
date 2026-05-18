@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LGPL-2.1-only
 'use strict';
 /**
  * Minimal Stratum server for SDK integration tests.

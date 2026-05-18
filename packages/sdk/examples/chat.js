@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: LGPL-2.1-only
 'use strict';
 /**
  * example: E2E encrypted chat using @tnzx/sdk

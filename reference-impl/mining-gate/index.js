@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LGPL-2.1-only
 /**
  * Mining Gate — PoW-Based Access Control (Reference Implementation)
  *

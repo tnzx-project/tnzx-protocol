@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LGPL-2.1-only
 'use strict';
 /**
  * @tnzx/sdk — E2E encryption (reference-impl wire format)

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LGPL-2.1-only
 /**
  * XChaCha20-Poly1305 — TNZX vendored implementation
  *

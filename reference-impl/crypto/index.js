@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LGPL-2.1-only
 /**
  * Visual Stratum — E2E Encryption Module (Reference Implementation)
  *
