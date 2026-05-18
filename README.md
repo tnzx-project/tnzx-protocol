@@ -158,15 +158,15 @@ HTTPS only            + Economic model        + Timing decorrelation (design)
 
 ### 1. Encapsulated Mining Communication
 
-Visual Stratum encodes payload bytes in Stratum share fields by having a TNZX-enhanced miner (tnzxminer) constrain specific field bytes to payload values before PoW search. A VS-aware pool extracts the payload; a non-VS pool processes the share normally (or rejects it if it is a ghost share below difficulty threshold). Standard unmodified XMRig does not implement VS encoding.
+Visual Stratum encodes payload bytes in Stratum share fields by having a TNZX-enhanced miner (vs-miner) constrain specific field bytes to payload values before PoW search. A VS-aware pool extracts the payload; a non-VS pool processes the share normally (or rejects it if it is a ghost share below difficulty threshold). Standard unmodified XMRig does not implement VS encoding.
 
 ```
-Bitcoin-style V2 share (tnzxminer, extranonce2 preset before mining):
+Bitcoin-style V2 share (vs-miner, extranonce2 preset before mining):
   Normal: { nonce: "a1b2c3d4", extranonce2: "00000001" }
   VS2:    { nonce: "a1b2XX00", extranonce2: "0000XXYY" }
                            ↑payload nibble    ↑ 2 payload bytes preset before PoW search
 
-Monero V3 ghost share (tnzxminer, no PoW required):
+Monero V3 ghost share (vs-miner, no PoW required):
   Normal valid share: { nonce: "a1b2c3d4", result: "<valid hash>" }
   VS3 ghost:          { nonce: "aa48656c", result: "<any>", ntime: "hihi XXYY" }
                                ↑ sentinel  3 payload bytes     ↑ TNZX ext field
@@ -188,7 +188,7 @@ VS3 specifies distribution of messages across four channels with different steal
 
 | Channel | Bandwidth | Stealth | Direction | Implementation |
 |---------|-----------|---------|-----------|----------------|
-| Stratum shares | 3–5 B/share (Monero, tnzxminer) · 7 B/share (Bitcoin-style, tnzxminer) | Highest | Upload | **Reference impl** |
+| Stratum shares | 3–5 B/share (Monero, vs-miner) · 7 B/share (Bitcoin-style, vs-miner) | Highest | Upload | **Reference impl** |
 | PNG charts (LSB) | 45 KB/image | Highest | Download | Specified |
 | WebSocket | 50 KB/s | High | Bidirectional | Specified |
 | HTTP/2 streams | 100 KB/s | High | Bidirectional | Specified |

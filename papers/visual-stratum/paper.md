@@ -12,7 +12,7 @@
 
 We present Visual Stratum, a family of protocols that create covert communication channels within standard cryptocurrency mining traffic. By exploiting the inherent randomness of proof-of-work share submissions, Visual Stratum embeds encrypted messages in fields that are entropy-equivalent to legitimate mining data (see Section 7.2 for the information-theoretic argument). The protocol introduces *Mining Gate*, a novel access control mechanism that binds communication bandwidth to active proof-of-work, simultaneously solving spam prevention, economic sustainability, and censorship resistance.
 
-Visual Stratum operates across three protocol generations. VS1 hides payloads in PNG chart images via LSB steganography. VS2 adds Stratum-level embedding and Mining Gate. VS3 specifies a multi-channel adaptive transport design with a theoretical bandwidth ceiling of ~195 KB/s when all four channels are active; the Stratum channel is implemented and tested, while the remaining channels (WebSocket, HTTP/2, PNG) are specified but not yet implemented. In maximum-stealth mode (Monero Stratum, with tnzxminer) the Stratum channel carries up to 5 bytes per share via ghost shares; with standard XMRig the Stratum embedding channel requires a TNZX-enhanced client. VS-encoded shares are structurally valid Stratum JSON processed normally by VS-aware pools; ghost shares require a TNZX-aware pool configured to accept sub-difficulty submissions.
+Visual Stratum operates across three protocol generations. VS1 hides payloads in PNG chart images via LSB steganography. VS2 adds Stratum-level embedding and Mining Gate. VS3 specifies a multi-channel adaptive transport design with a theoretical bandwidth ceiling of ~195 KB/s when all four channels are active; the Stratum channel is implemented and tested, while the remaining channels (WebSocket, HTTP/2, PNG) are specified but not yet implemented. In maximum-stealth mode (Monero Stratum, with vs-miner) the Stratum channel carries up to 5 bytes per share via ghost shares; with standard XMRig the Stratum embedding channel requires a TNZX-enhanced client. VS-encoded shares are structurally valid Stratum JSON processed normally by VS-aware pools; ghost shares require a TNZX-aware pool configured to accept sub-difficulty submissions.
 
 We provide a security analysis demonstrating statistical undetectability of the Stratum embedding (encrypted payload bytes are entropy-equivalent to unmodified nonce values), perfect forward secrecy via ephemeral X25519 key exchange, and replay protection. A reference implementation of the core modules (Stratum embedding, E2E encryption, Mining Gate) validates the protocol on a RandomX-compatible testnet. The multi-channel transport layer (WebSocket, HTTP/2, PNG) is fully specified but not included in the published reference implementation.
 
@@ -53,7 +53,7 @@ These properties make mining traffic an ideal *cover channel* for steganographic
 
 This paper makes four contributions:
 
-1. **Visual Stratum Protocol.** A steganographic embedding scheme that hides encrypted data in Stratum mining share fields. For Bitcoin-style Stratum: nonce low nibbles, extranonce2 preset bytes, and ntime low bytes. For Monero Stratum: nonce bytes via ghost shares, plus a TNZX extension field (`ntime`) added by tnzxminer. The entropy-equivalence undetectability argument applies with full strength to the nonce channel; it is weaker for extranonce2 (sequential distribution in standard miners) and inapplicable to the ntime extension field in Monero (which does not exist in standard Monero Stratum). See Section 7.2 for the full analysis. *Status: implemented and tested (requires tnzxminer for V2/V3/ghost modes).*
+1. **Visual Stratum Protocol.** A steganographic embedding scheme that hides encrypted data in Stratum mining share fields. For Bitcoin-style Stratum: nonce low nibbles, extranonce2 preset bytes, and ntime low bytes. For Monero Stratum: nonce bytes via ghost shares, plus a TNZX extension field (`ntime`) added by vs-miner. The entropy-equivalence undetectability argument applies with full strength to the nonce channel; it is weaker for extranonce2 (sequential distribution in standard miners) and inapplicable to the ntime extension field in Monero (which does not exist in standard Monero Stratum). See Section 7.2 for the full analysis. *Status: implemented and tested (requires vs-miner for V2/V3/ghost modes).*
 
 2. **Mining Gate.** A novel access control mechanism where communication bandwidth is mathematically bound to active proof-of-work. Mining Gate simultaneously provides anti-spam, Sybil resistance, economic sustainability, and censorship resistance. *Status: implemented and tested.*
 
@@ -170,11 +170,11 @@ VS2 adds two innovations: embedding data in Stratum share submissions (upload ch
 
 | Mode | Fields Modified | Bytes/Share | Chain | Miner required |
 |------|----------------|-------------|-------|----------------|
-| V1 Stealth | nonce low nibbles (8 bits) | 1 | Any | tnzxminer |
-| V2 Standard | nonce LSB + extranonce2 last 2 bytes (preset before mining) | 3 | Bitcoin-style | tnzxminer |
-| V3 Monero | nonce[0]=0xAA sentinel + nonce[1..3] + ntime ext (2 bytes) | 5 | Monero (TNZX pool) | tnzxminer |
+| V1 Stealth | nonce low nibbles (8 bits) | 1 | Any | vs-miner |
+| V2 Standard | nonce LSB + extranonce2 last 2 bytes (preset before mining) | 3 | Bitcoin-style | vs-miner |
+| V3 Monero | nonce[0]=0xAA sentinel + nonce[1..3] + ntime ext (2 bytes) | 5 | Monero (TNZX pool) | vs-miner |
 
-**V1** requires the miner to fix the low byte of the nonce to the payload value and search for a valid PoW solution by varying the upper bits. **V2** requires the miner to preset extranonce2 payload bytes before beginning the search; extranonce2 is part of the Bitcoin coinbase transaction and therefore fully participates in PoW validation — post-hoc substitution would break the share. **V3-Monero** uses ghost shares (submitted below pool difficulty threshold) where no PoW validity is required; `ntime` is a TNZX extension field that does not exist in standard Monero Stratum (`mining.submit` in Monero contains only `nonce`, `job_id`, and `result`). All three modes require a TNZX-enhanced miner (tnzxminer); standard unmodified XMRig does not implement any of these encoding strategies.
+**V1** requires the miner to fix the low byte of the nonce to the payload value and search for a valid PoW solution by varying the upper bits. **V2** requires the miner to preset extranonce2 payload bytes before beginning the search; extranonce2 is part of the Bitcoin coinbase transaction and therefore fully participates in PoW validation — post-hoc substitution would break the share. **V3-Monero** uses ghost shares (submitted below pool difficulty threshold) where no PoW validity is required; `ntime` is a TNZX extension field that does not exist in standard Monero Stratum (`mining.submit` in Monero contains only `nonce`, `job_id`, and `result`). All three modes require a TNZX-enhanced miner (vs-miner); standard unmodified XMRig does not implement any of these encoding strategies.
 
 Ghost shares (V3 Monero) are accepted only by TNZX-aware pools with `ghostDiffMax` configured. Standard Monero pools reject sub-difficulty shares.
 
@@ -351,7 +351,7 @@ $$u = \frac{1 + y}{1 - y} \mod p, \quad p = 2^{255} - 19$$
 
 $$K = \text{HKDF}(\text{IKM} = shared\_secret,\ \text{salt} = \text{random}(32),\ \text{info} = \texttt{"tnzx-e2e-v3"},\ \text{len} = 32)$$
 
-A fresh random salt per message ensures unique keys even for the same shared secret.
+A fresh random salt per message ensures unique keys, even for the same shared secret.
 
 **Authenticated encryption.** XChaCha20-Poly1305 (RFC 8439 + HChaCha20) with:
 - Key: 256 bits (from HKDF)
@@ -464,7 +464,7 @@ The argument is **weaker for extranonce2 (V2)** and **does not apply to ntime in
 
 - *ntime (Bitcoin-style):* ntime is a Unix timestamp, not a random value. Replacing its low 16 bits with payload bytes introduces apparent clock drift that is statistically distinguishable from real timestamp behavior over time. This is separately discussed in Section 7.2 (Note on ntime undetectability).
 
-- *ntime in Monero:* The `ntime` field does not exist in standard Monero Stratum. In VS3-Monero, ntime is a TNZX extension field sent by tnzxminer; its presence in a Monero `mining.submit` is itself a distinguishing signal to a sufficiently detailed Stratum analyzer.
+- *ntime in Monero:* The `ntime` field does not exist in standard Monero Stratum. In VS3-Monero, ntime is a TNZX extension field sent by vs-miner; its presence in a Monero `mining.submit` is itself a distinguishing signal to a sufficiently detailed Stratum analyzer.
 
 The entropy-equivalence undetectability argument therefore applies with full strength only to the V1 nonce nibble channel.
 
@@ -559,7 +559,7 @@ Cryptographic overhead is negligible compared to mining computation and network 
 
 ### 8.4 Deployment
 
-The Stratum embedding protocol has been deployed and tested using the reference implementation against a custom TNZX-aware pool running on a RandomX-compatible testnet with multiple Stratum difficulty tiers. Testing used the reference implementation's encoder/decoder and a TNZX pool configured to accept ghost shares. Compatibility with standard unmodified XMRig has not been tested for ghost share or V2/V3 modes; these require tnzxminer. The V1 nonce nibble embedding is designed to be compatible with standard miners in principle, but was validated in the reference implementation only, not against production XMRig builds. Multiple rounds of internal security review have been conducted; independent third-party audit is pending.
+The Stratum embedding protocol has been deployed and tested using the reference implementation against a custom TNZX-aware pool running on a RandomX-compatible testnet with multiple Stratum difficulty tiers. Testing used the reference implementation's encoder/decoder and a TNZX pool configured to accept ghost shares. Compatibility with standard unmodified XMRig has not been tested for ghost share or V2/V3 modes; these require vs-miner. The V1 nonce nibble embedding is designed to be compatible with standard miners in principle, but was validated in the reference implementation only, not against production XMRig builds. Multiple rounds of internal security review have been conducted; independent third-party audit is pending.
 
 ### 8.5 Implementation Notes
 

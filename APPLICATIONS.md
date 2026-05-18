@@ -8,7 +8,7 @@ Not all described capabilities are currently available. The following table summ
 
 | Capability | Status | Notes |
 |-----------|--------|-------|
-| Text messaging via Stratum channel | **Implemented** | 5 B/share (Monero, with tnzxminer) · 7 B/share (Generic), high stealth |
+| Text messaging via Stratum channel | **Implemented** | 5 B/share (Monero, with vs-miner) · 7 B/share (Generic), high stealth |
 | E2E encryption | **Implemented** | XChaCha20-Poly1305, X25519, replay protection |
 | Mining Gate access control | **Implemented** | PoW-gated, adaptive threshold |
 | PNG steganographic download | Specified | Not in published reference implementation |

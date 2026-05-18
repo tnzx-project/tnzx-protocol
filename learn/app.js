@@ -23,14 +23,14 @@ const SCENARIOS = [
       {
         title: 'Alice connects to the pool',
         body: 'Alice connects via standard Stratum TCP. She sends a <code>login</code> JSON-RPC with her Monero wallet address. The pool responds with a miner ID and initial job.',
-        detail: '{ "method": "login", "params": { "login": "4...Alice", "pass": "x", "agent": "tnzxminer/1.0" } }\n\nPool response: { "result": { "id": "miner01", "job": {...}, "extensions": { "vs3_session": "a1b2..." } } }',
+        detail: '{ "method": "login", "params": { "login": "4...Alice", "pass": "x", "agent": "vs-miner/1.0" } }\n\nPool response: { "result": { "id": "miner01", "job": {...}, "extensions": { "vs3_session": "a1b2..." } } }',
         messages: [{ from: 'alice', to: 'pool', label: 'login (wallet)', style: 'data', y: 130 }],
         highlight: ['alice', 'pool']
       },
       {
         title: 'Bob also connects to the same pool',
         body: 'Bob connects independently. Both miners now have active Stratum sessions with the pool. Neither knows the other exists yet.',
-        detail: '{ "method": "login", "params": { "login": "4...Bob", "pass": "x", "agent": "tnzxminer/1.0" } }',
+        detail: '{ "method": "login", "params": { "login": "4...Bob", "pass": "x", "agent": "vs-miner/1.0" } }',
         messages: [{ from: 'bob', to: 'pool', label: 'login (wallet)', style: 'data', y: 150 }],
         highlight: ['bob', 'pool']
       },
