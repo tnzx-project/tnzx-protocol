@@ -95,7 +95,7 @@ Fallback: LoRa mesh networking for internet blackout scenarios.
 
 | Threat | Defense |
 |--------|---------|
-| Mass surveillance | VS2 steganography over Stratum |
+| Mass surveillance | VS2 data encapsulation over Stratum |
 | Traffic analysis | Mining traffic as cover |
 | Single infiltrator | Sees very little, traps active |
 | Multiple infiltrators | Cost scales linearly |
@@ -135,7 +135,7 @@ Layer 5: Consensus       (Emergency, Quorum, ZK Vote)
 Layer 4: Reputation      (Score, Vouching, Decay)
 Layer 3: Identity        (ZK Commitment, Ring Signature, Nullifier)
 Layer 2: Encryption      (ChaCha20-Poly1305, X25519, HKDF)
-Layer 1: Transport       (VS2 Steganographic over Stratum / LoRa Mesh)
+Layer 1: Transport       (VS2 Encapsulated over Stratum / LoRa Mesh)
 Layer 0: Proof of Work   (RandomX-compatible mining)
 ```
 

@@ -63,7 +63,7 @@
   (Paper Appendix D.6)
 - **knownTypes requirement:** Implementations MUST accept all defined MSG_TYPE codes.
 - **Post-quantum considerations:** Added to paper Section 9.3 — hybrid ECDH+PQC KEM
-  on non-steganographic channel, graceful degradation principle.
+  on non-encapsulated channel, graceful degradation principle.
 - **Paper Section 5.2:** Fixed stale HKDF info string (`tnzx-stego-e2e-v1` → `tnzx-e2e-v3`).
 - **Paper Section 8.2:** Updated test count from 37 to 65 (41 main + 24 xchacha20).
 - **Paper Section 10:** Removed unsubstantiated satellite/LoRa claim; replaced CRYSTALS-Kyber

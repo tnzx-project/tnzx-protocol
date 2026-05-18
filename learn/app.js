@@ -346,7 +346,7 @@ const SCENARIOS = [
       },
       {
         title: 'What the DPI cannot determine',
-        body: 'Even if the DPI suspects steganographic communication, it <strong>cannot read the content</strong> (XChaCha20-Poly1305 encryption), <strong>cannot identify the recipient</strong> (vs3_to field is in cleartext JSON but meaningless without pool context), and <strong>cannot selectively block ghost shares</strong> without blocking all mining traffic.',
+        body: 'Even if the DPI suspects encapsulated communication, it <strong>cannot read the content</strong> (XChaCha20-Poly1305 encryption), <strong>cannot identify the recipient</strong> (vs3_to field is in cleartext JSON but meaningless without pool context), and <strong>cannot selectively block ghost shares</strong> without blocking all mining traffic.',
         detail: 'DPI capabilities vs TNZX:\n  ✗ Read message content         → E2E encrypted\n  ✗ Identify message type         → encrypted envelope (all = 0x05)\n  ✗ Block ghost shares only        → must block ALL mining traffic\n  ✗ Detect HMAC sentinel           → appears random\n  ~ Detect result=0x00 shares      → needs hash validation (expensive)\n  ✓ Block all mining traffic        → "nuclear option" (economic consequences)\n  ✓ Endpoint compromise             → bypasses all network protection',
         messages: [],
         highlight: ['dpi']
@@ -402,8 +402,8 @@ const SCENARIOS = [
     actors: ['alice', 'pool', 'bob'],
     steps: [
       {
-        title: 'VS1: PNG steganography (2025)',
-        body: '<strong>Visual Stratum 1</strong> — the original. Hides data in PNG image pixels using LSB steganography. Pool sends "mining stats charts" to miners via HTTPS. The chart pixels carry hidden encrypted data. Download-only; 45 KB per image.',
+        title: 'VS1: PNG data encapsulation (2025)',
+        body: '<strong>Visual Stratum 1</strong> — the original. Embeds data in PNG image pixels using LSB data encapsulation. Pool sends "mining stats charts" to miners via HTTPS. The chart pixels carry embedded encrypted data. Download-only; 45 KB per image.',
         detail: 'Channel:    PNG images over HTTPS (port 443)\nDirection:  Pool → Miner (download only)\nCapacity:   400×300 px × 3 channels × 1 bit = 45,000 bytes\nEncryption: XChaCha20-Poly1305 + X25519 ECDH\nCover:      Real mining statistics charts\nLimitations: No upload, no anti-spam, no economic model',
         messages: [{ from: 'pool', to: 'alice', label: 'HTTPS: PNG chart (45KB hidden data)', style: 'data', y: 160 }],
         highlight: ['pool', 'alice']

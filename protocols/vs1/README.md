@@ -6,7 +6,7 @@
 
 ## Summary
 
-Visual Stratum 1 is the foundational steganographic protocol. It hides encrypted payloads in the least significant bits (LSB) of procedurally generated PNG chart images, delivered over standard HTTPS.
+Visual Stratum 1 is the foundational data-encapsulation protocol. It embeds encrypted payloads in the least significant bits (LSB) of procedurally generated PNG chart images, delivered over standard HTTPS.
 
 ## Architecture
 
@@ -15,7 +15,7 @@ Application Layer    (Messages, Files, Commands)
         ↓
 Encryption Layer     (XChaCha20-Poly1305 + X25519 ECDH + HKDF-SHA256)
         ↓
-Steganography Layer  (LSB encoding in PNG pixels)
+Data Encapsulation Layer  (LSB encoding in PNG pixels)
         ↓
 Transport Layer      (HTTPS, standard port 443)
 ```

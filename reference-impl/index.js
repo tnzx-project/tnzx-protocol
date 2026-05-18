@@ -38,7 +38,7 @@ const { E2ECrypto, encryptOneShot, decryptOneShot,
 const { MiningGate, MinerState, ACCESS_LEVEL, DEFAULT_CONFIG } = require('./mining-gate');
 
 module.exports = {
-  // Steganography
+  // Data Encapsulation
   StegoEncoder, StegoDecoder, MSG_TYPE, MAGIC_BYTE, HEADER_SIZE,
   VERSION_V1, VERSION_V2, VERSION_V3, isValidHex, safeHexToBuffer,
   wrapTypedPayload, unwrapTypedPayload,

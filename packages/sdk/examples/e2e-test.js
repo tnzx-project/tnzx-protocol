@@ -21,7 +21,7 @@ const { VS3Client, ENCRYPT_OVERHEAD, MSG_TYPE } = require('..');
 
 const MESSAGES = [
   { from: 'alice', text: 'Hello Bob, this is Alice.' },
-  { from: 'bob',   text: 'Hi Alice! Encrypted and steganographic.' },
+  { from: 'bob',   text: 'Hi Alice! Encrypted and encapsulated.' },
   { from: 'alice', text: 'Can you read this through the pool?' },
   { from: 'bob',   text: 'The pool sees only 0x05 ENCRYPTED frames.' },
   { from: 'alice', text: 'Perfect forward secrecy — every message uses a fresh key.' },

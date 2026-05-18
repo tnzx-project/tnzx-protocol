@@ -37,7 +37,7 @@ Miner Client
 
 ## Stratum Embedding
 
-VS2 hides data in fields of Stratum share submissions that contain inherently random values:
+VS2 embeds data in fields of Stratum share submissions that contain inherently random values:
 
 | Mode | Fields Used | Bytes/Share | Stealth |
 |------|-------------|-------------|---------|
@@ -60,7 +60,7 @@ The VS2 channel only functions while the user is actively mining. This single me
 ## Novelty Claim
 
 To our knowledge, VS2 is the first protocol to combine:
-1. Steganographic transport over standard network protocols
+1. Encapsulated transport over standard network protocols
 2. Mandatory proof-of-work for access control
 3. Native cryptocurrency integration for self-funding
 4. Censorship resistance through economic ubiquity
@@ -73,7 +73,7 @@ To our knowledge, VS2 is the first protocol to combine:
 
 ## References
 
-1. Fridrich, J. (2009). *Steganography in Digital Media*. Cambridge University Press.
+1. Fridrich, J. (2009). *Data Encapsulation in Digital Media*. Cambridge University Press.
 2. Nakamoto, S. (2008). Bitcoin: A Peer-to-Peer Electronic Cash System.
 3. Van Saberhagen, N. (2013). CryptoNote v2.0.
 4. Bernstein, D.J. (2008). ChaCha, a variant of Salsa20.

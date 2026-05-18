@@ -11,7 +11,7 @@ Not all described capabilities are currently available. The following table summ
 | Text messaging via Stratum channel | **Implemented** | 5 B/share (Monero, with vs-miner) · 7 B/share (Generic), high stealth |
 | E2E encryption | **Implemented** | XChaCha20-Poly1305, X25519, replay protection |
 | Mining Gate access control | **Implemented** | PoW-gated, adaptive threshold |
-| PNG steganographic download | Specified | Not in published reference implementation |
+| PNG encapsulated download | Specified | Not in published reference implementation |
 | WebSocket / HTTP/2 channels | Specified | Not in published reference implementation |
 | File transfer (SPEED mode) | Specified | Requires multi-channel transport |
 | Voice communication | Theoretical | Bandwidth may suffice; not implemented or tested |
@@ -27,7 +27,7 @@ The TNZX protocols are designed for individuals who need to communicate privatel
 - Metadata exposure (who communicates with whom) is as dangerous as content exposure
 - Centralized servers can be compelled to produce data or shut down
 
-**What works today:** Text messaging over the Stratum channel with E2E encryption and Mining Gate access control. This provides the core value proposition — covert text communication hidden within mining traffic — at low bandwidth but high stealth.
+**What works today:** Text messaging over the Stratum channel with E2E encryption and Mining Gate access control. This provides the core value proposition — encapsulated text communication hidden within mining traffic — at low bandwidth but high stealth.
 
 ## Who This Is For
 

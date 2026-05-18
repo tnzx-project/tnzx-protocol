@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-only
 /**
- * Visual Stratum — Steganographic Encoder/Decoder (Reference Implementation)
+ * Visual Stratum — Encapsulation Encoder/Decoder (Reference Implementation)
  *
  * DESIGN PRINCIPLE
  * ----------------
@@ -20,7 +20,7 @@
  *               of nonce contribute); by restricting 8 bits the search space
  *               is reduced by a factor of 256, which is always feasible.
  *               One payload byte is split across two nibble slots (4 bits each).
- *     Requires: TNZX-enhanced miner (tnzxminer). Standard XMRig does not
+ *     Requires: TNZX-enhanced miner (vs-miner). Standard XMRig does not
  *               constrain nonce bits to payload values.
  *
  *   V2 — Bitcoin-style Stratum (3 bytes/share)
@@ -44,11 +44,11 @@
  *               (sentinel for pool detection), bytes [1..3] carry 3 payload
  *               bytes. The `ntime` field does NOT exist in standard Monero
  *               Stratum (mining.submit contains only nonce, job_id, result).
- *               ntime is a TNZX extension field sent by tnzxminer; the pool
+ *               ntime is a TNZX extension field sent by vs-miner; the pool
  *               falls back to zero bytes if absent. With standard XMRig
  *               (no ntime, no ghost shares): 0 bytes/share via this channel.
- *               With tnzxminer: 5 bytes/share (3 from nonce + 2 from ntime).
- *     Requires: TNZX-aware pool (ghostDiffMax configured) + tnzxminer.
+ *               With vs-miner: 5 bytes/share (3 from nonce + 2 from ntime).
+ *     Requires: TNZX-aware pool (ghostDiffMax configured) + vs-miner.
  *
  * VS3 FRAME FORMAT (identical for all profiles — transport-independent)
  * ──────────────────────────────────────────────────────────────────────
@@ -122,7 +122,7 @@ function safeHexToBuffer(hex, field = 'input') {
 }
 
 /**
- * Steganographic Encoder
+ * Encapsulation Encoder
  *
  * Two-step workflow:
  *   1. createMessageFrames(payload) — splits payload into VS3 frames, each
@@ -292,7 +292,7 @@ class StegoEncoder {
 }
 
 /**
- * Steganographic Decoder
+ * Encapsulation Decoder
  *
  * Extracts payload bytes from Stratum share fields and reassembles VS3 frames.
  *

@@ -16,12 +16,12 @@
     "test": "node test.js"
   },
   "keywords": [
-    "steganography",
+    "encapsulated-transport",
     "mining",
     "privacy",
     "randomx",
     "stratum",
-    "covert-channel",
+    "cover-traffic",
     "encryption"
   ]
 }

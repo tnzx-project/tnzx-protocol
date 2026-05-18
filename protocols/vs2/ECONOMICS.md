@@ -13,7 +13,7 @@ Users hold their own keys at all times.
 
 ## How Mining Gate Funds Communication
 
-The core economic insight: **messaging has zero marginal cost** to the pool operator. Mining fees already cover infrastructure. Adding a covert communication channel requires no additional revenue.
+The core economic insight: **messaging has zero marginal cost** to the pool operator. Mining fees already cover infrastructure. Adding a encapsulated communication channel requires no additional revenue.
 
 ```
 Miner mines            → Pool fee (0.5-1% of block rewards)
@@ -40,7 +40,7 @@ This aligns incentives: more miners = more revenue = better infrastructure = mor
 
 ## Why a Privacy-Native PoW Chain Is Recommended
 
-For deployments targeting censorship-resistant communication (the primary use case), the PoW chain should ideally have:
+For deployments targeting resilient communication (the primary use case), the PoW chain should ideally have:
 
 1. **CPU-minable algorithm** — so any user can mine without specialized hardware
 2. **Private transactions** — so payment metadata does not leak communication patterns
