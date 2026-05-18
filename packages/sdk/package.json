@@ -1,7 +1,7 @@
 {
   "name": "@tnzx/sdk",
   "version": "1.0.0",
-  "description": "Build apps on the TNZX protocol — censorship-resistant messaging over mining channels",
+  "description": "Build apps on the TNZX protocol — encapsulated messaging over cryptocurrency mining traffic",
   "main": "index.js",
   "exports": {
     ".": "./index.js",
@@ -26,10 +26,10 @@
   "keywords": [
     "tnzx",
     "stratum",
-    "steganography",
+    "encapsulated-transport",
     "mining",
     "privacy",
-    "censorship-resistance",
+    "communication-resilience",
     "encryption",
     "xchacha20"
   ],
