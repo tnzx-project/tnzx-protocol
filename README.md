@@ -2,13 +2,13 @@
 
 [![tests](https://github.com/tnzx-project/tnzx-protocol/actions/workflows/tests.yml/badge.svg)](https://github.com/tnzx-project/tnzx-protocol/actions/workflows/tests.yml)
 
-**Open protocols for censorship-resistant communication over cryptocurrency mining channels.**
+**Open protocols for resilient encrypted communication over cryptocurrency mining traffic.**
 
 ![Alice and Bob exchanging E2E encrypted messages through a Stratum pool](docs/img/demo-chat.png)
 
 ![CLI demo — pool log (left) shows only ghost shares and 0x05 frames; decrypted conversation (right)](docs/img/demo-chat2.png)
 
-*Left: the Stratum pool sees only ghost shares (`nonce=aa...`) and encrypted frames (`type=0x05`). Right: Alice and Bob exchange sensitive messages — decrypted only on the endpoints. The pool operator cannot read, filter, or censor the content. Run it: `node run-demo.js` in [tnzx-pool-demo](https://github.com/tnzx-project/tnzx-pool-demo).*
+*Left: the Stratum pool sees only ghost shares (`nonce=aa...`) and encrypted frames (`type=0x05`). Right: Alice and Bob exchange sensitive messages — decrypted only on the endpoints. The pool operator cannot read, filter, or selectively block the content. Run it: `node run-demo.js` in [tnzx-pool-demo](https://github.com/tnzx-project/tnzx-pool-demo).*
 
 > **Security notice:** This project is in active research and development. It has not undergone an independent security audit. Do not rely on it to protect life, liberty, or safety without independent verification. The protocol and implementation may contain undiscovered vulnerabilities. We consider honest acknowledgment of these limitations to be essential for a project targeting users in high-risk environments.
 
@@ -16,9 +16,9 @@
 
 ## What is this?
 
-TNZX is a family of protocols that exploit the inherent randomness of cryptocurrency mining traffic to create covert communication channels. Mining shares — legitimate proof-of-work submissions — carry hidden encrypted payloads that are entropy-equivalent to normal mining data — see the design paper (Section 7.2) for the information-theoretic argument.
+TNZX is a family of protocols that leverage the inherent randomness of cryptocurrency mining traffic to provide encapsulated communication channels. Mining shares — legitimate proof-of-work submissions — carry embedded encrypted payloads that are statistically indistinguishable from ordinary mining data — see the design paper (Section 7.2) for the information-theoretic argument.
 
-The key innovation is **Mining Gate**: communication bandwidth is mathematically bound to proof-of-work. You must mine to message. This creates anti-spam, economic sustainability, and censorship resistance in a single mechanism.
+The key innovation is **Mining Gate**: communication bandwidth is mathematically bound to proof-of-work. You must mine to message. This creates anti-spam, economic sustainability, and communication resilience in a single mechanism.
 
 ## Architecture
 
@@ -90,9 +90,9 @@ sequenceDiagram
 Visual Stratum is designed to protect communication in environments where standard secure-messaging channels (Signal, Tor, VPNs) are blocked or fingerprinted at the network layer.
 
 **Who this protects:**
-- Journalists, activists, and human rights defenders under network censorship
+- Journalists, activists, and human rights defenders operating under restricted network conditions
 - Users in environments with Deep Packet Inspection (DPI) that blocks known privacy tools
-- Anyone who needs to communicate covertly through a channel that cannot be selectively blocked without economic consequences
+- Anyone who needs to communicate through an encapsulated channel that cannot be selectively blocked without economic consequences
 
 **What it protects against:**
 - **ISP-level DPI** that classifies and blocks traffic by protocol fingerprint
@@ -104,7 +104,7 @@ Visual Stratum is designed to protect communication in environments where standa
 - **Device compromise** (malware on the endpoint sees plaintext before encryption)
 - **Nation-state signals intelligence** with per-connection hash verification (ghost shares have zero PoW and are detectable by an observer who validates every share hash)
 - **Global traffic analysis** correlating sender/receiver mining sessions by timing
-- **Malicious pool operator (MITM)** — key exchange is currently unauthenticated (trust-on-first-use). A pool operator who actively modifies traffic can inject fake public keys and read messages. Authenticated key exchange is planned.
+- **Malicious pool operator (MITM)** — key exchange is currently unauthenticated (trust-on-first-use). A pool operator who actively modifies traffic can inject fake public keys, then read encrypted messages. Authenticated key exchange is planned.
 - **Blocking all mining traffic** (governments can and have banned cryptocurrency mining entirely, e.g., China 2021)
 
 **Assumptions:**
@@ -121,8 +121,8 @@ This repository contains protocol specifications, a design paper, and a referenc
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Stratum steganographic embedding (VS1/VS3-Monero) | **Implemented and tested** | Core encoder/decoder in reference impl |
-| Stratum steganographic embedding (VS2 Bitcoin-style) | **Specified; demonstrated in pool demo proxy** | Encoding via extranonce2; not in reference impl |
+| Stratum encapsulated embedding (VS1/VS3-Monero) | **Implemented and tested** | Core encoder/decoder in reference impl |
+| Stratum encapsulated embedding (VS2 Bitcoin-style) | **Specified; demonstrated in pool demo proxy** | Encoding via extranonce2; not in reference impl |
 | E2E encryption (X25519 + XChaCha20-Poly1305) | **Implemented and tested** | Session and one-shot modes, replay protection |
 | Encrypted type envelope | **Implemented and tested** | All frames use 0x05 ENCRYPTED externally |
 | Mining Gate (PoW-gated access) | **Implemented and tested** | State machine, adaptive threshold |
@@ -139,7 +139,7 @@ This repository contains protocol specifications, a design paper, and a referenc
 
 | Protocol | Version | Description | Status |
 |----------|---------|-------------|--------|
-| [Visual Stratum 1](protocols/vs1/) | 1.0 | PNG LSB steganography over HTTPS | Archived |
+| [Visual Stratum 1](protocols/vs1/) | 1.0 | PNG LSB data encoding over HTTPS | Archived |
 | [Visual Stratum 2](protocols/vs2/) | 2.0 | Mining Gate + Stratum embedding | Specified; demonstrated in pool demo proxy |
 | [Visual Stratum 3](protocols/vs3/) | 3.0 | Multi-channel adaptive transport | Partially implemented (Stratum channel only) |
 | [Falo](protocols/falo/) | 0.1 | Anonymous coordination via ZK proofs | Design phase |
@@ -147,16 +147,16 @@ This repository contains protocol specifications, a design paper, and a referenc
 ### Evolution
 
 ```
-VS1 (2025)          VS2 (2026)              VS3 (2026)
-PNG steganography → + Mining Gate         → + Multi-channel transport (design)
-45 KB per image     + Stratum embedding     + Adaptive mode selection (design)
-HTTPS only          + Economic model        + Timing decorrelation (design)
-                    + Anti-spam via PoW
+VS1 (2025)             VS2 (2026)              VS3 (2026)
+PNG-based encoding  → + Mining Gate         → + Multi-channel transport (design)
+45 KB per image       + Stratum embedding     + Adaptive mode selection (design)
+HTTPS only            + Economic model        + Timing decorrelation (design)
+                      + Anti-spam via PoW
 ```
 
 ## Key Innovations
 
-### 1. Steganographic Mining Communication
+### 1. Encapsulated Mining Communication
 
 Visual Stratum encodes payload bytes in Stratum share fields by having a TNZX-enhanced miner (tnzxminer) constrain specific field bytes to payload values before PoW search. A VS-aware pool extracts the payload; a non-VS pool processes the share normally (or rejects it if it is a ghost share below difficulty threshold). Standard unmodified XMRig does not implement VS encoding.
 
@@ -172,7 +172,7 @@ Monero V3 ghost share (tnzxminer, no PoW required):
                                ↑ sentinel  3 payload bytes     ↑ TNZX ext field
 ```
 
-The information-theoretic argument for Stratum channel undetectability is in the design paper (Section 7.2). The PNG channel requires separate steganalysis validation.
+The information-theoretic argument for Stratum channel undetectability is in the design paper (Section 7.2). The PNG channel requires separate statistical detection analysis.
 
 ### 2. Mining Gate (Proof-of-Work Gated Communication)
 
@@ -205,24 +205,24 @@ A design for anonymous group coordination using zero-knowledge proofs, ring sign
 | **Key Exchange** | X25519 ECDH with ephemeral keys | Implemented, tested |
 | **Forward Secrecy** | New keypair per message (one-shot mode) | Implemented, tested |
 | **Replay Protection** | Nonce tracking with 5-minute TTL | Implemented, tested |
-| **Undetectability (Stratum)** | Entropy-equivalent embedding | Implemented; information-theoretic argument |
-| **Undetectability (PNG)** | LSB with controlled noise | Specified; formal steganalysis pending |
+| **Undetectability (Stratum)** | Statistical indistinguishability from cover traffic | Implemented; information-theoretic argument |
+| **Undetectability (PNG)** | LSB with controlled noise | Specified; formal statistical analysis pending |
 | **Anti-spam** | Mining Gate (PoW-gated access) | Implemented, tested |
 | **Independent audit** | — | Pending |
 
 ## Papers
 
-- [Visual Stratum: Mining-Gated Steganographic Communication](papers/visual-stratum/) — Protocol design, specification, and security analysis. Describes both implemented and specified components.
+- [Visual Stratum — Protocol Design, Specification, and Security Analysis](papers/visual-stratum/) — Describes both implemented and specified components. (Paper title retains established academic terminology; see CITATION.cff for project-level metadata.)
 
 ### Research Notes
 
-- [Falo: Anonymous Censorship-Resistant Coordination](papers/falo/) — Design document for zero-knowledge group coordination over mining channels. Core cryptographic modules (ring signatures, ZK proofs) are in design phase. Of particular interest: Section 10 explores the human psychology of anonymous organizing.
+- [Falo — Anonymous Resilient Coordination](papers/falo/) — Design document for zero-knowledge group coordination over mining channels. Core cryptographic modules (ring signatures, ZK proofs) are in design phase. Of particular interest: Section 10 explores the human psychology of anonymous organizing.
 
 ## Reference Implementation
 
 A reference implementation in Node.js is provided in [`reference-impl/`](reference-impl/). It includes:
 
-- Steganographic encoder/decoder (VS1/VS2/VS3 Stratum embedding)
+- Encapsulation encoder/decoder (VS1/VS2/VS3 Stratum embedding)
 - E2E encryption (X25519 + XChaCha20-Poly1305 + HKDF + replay protection)
 - Mining Gate verification (PoW-gated access control)
 - Compact session encryption (prototype) — counter-based HKDF with ChaCha20-Poly1305, 32-byte overhead vs 88-byte standard (-64%)
@@ -230,7 +230,7 @@ A reference implementation in Node.js is provided in [`reference-impl/`](referen
 - Test suite: 90 tests across 3 suites (`node test.js` + `node crypto/test-xchacha20.js` + `node crypto/test-compact-session.js` — no external dependencies)
 
 **Not included in reference implementation** (specified in paper, planned for a future release):
-- PNG LSB steganographic channel
+- PNG LSB encoding channel
 - WebSocket and HTTP/2 transport channels
 - LZ4 compression and padding
 - Multi-channel routing and timing decorrelation
@@ -304,7 +304,7 @@ Visual Stratum's advantage is undetectable transport (real mining traffic, not s
 
 ## Applications
 
-See [APPLICATIONS.md](APPLICATIONS.md) for intended use cases — journalists, activists, human rights defenders, and populations under censorship.
+See [APPLICATIONS.md](APPLICATIONS.md) for intended use cases — journalists, activists, human rights defenders, and populations operating under restricted network conditions.
 
 ## License
 
@@ -314,7 +314,7 @@ LGPL-2.1. See [LICENSE](LICENSE).
 
 ```bibtex
 @misc{tnzx2026vs,
-  title={Visual Stratum: Steganographic Communication via Cryptocurrency Mining},
+  title={TNZX Protocol Suite: Encapsulated Communication over Cryptocurrency Mining Traffic},
   author={TNZX Project},
   year={2026},
   url={https://github.com/tnzx-project/tnzx-protocol}
