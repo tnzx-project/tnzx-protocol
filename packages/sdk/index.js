@@ -2,7 +2,7 @@
 /**
  * @tnzx/sdk — Build apps on the TNZX protocol
  *
- * Censorship-resistant messaging over cryptocurrency mining channels.
+ * Encapsulated messaging over cryptocurrency mining traffic.
  * Zero external dependencies. Node.js >= 18.
  *
  * Quick start:
