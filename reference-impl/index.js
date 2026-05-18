@@ -6,7 +6,7 @@
  * @example
  * const vs = require('visual-stratum-reference');
  *
- * // Steganographic encoding
+ * // Encapsulate message into mining-share frames
  * const encoder = new vs.StegoEncoder();
  * const { frames } = encoder.createMessageFrames('Hello VS3');
  *
