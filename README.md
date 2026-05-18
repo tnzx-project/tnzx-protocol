@@ -128,6 +128,8 @@ This repository contains protocol specifications, a design paper, and a referenc
 | Mining Gate (PoW-gated access) | **Implemented and tested** | State machine, adaptive threshold |
 | Developer SDK (`@tnzx/sdk`) | **Implemented and tested** | VS3Client, StratumClient, 40 tests |
 | HMAC sentinel (anti-DPI) | **Implemented and tested** | Replaces detectable 0xAA with HMAC-tagged nonce |
+| VS3 Proxy (middleware, any pool) | **Implemented and tested** | Sits between any unmodified miner and any standard Stratum pool. Verified on HashVault (Monero) and Braiins (Bitcoin) production pools. See [tnzx-pool-demo/poc/](https://github.com/tnzx-project/tnzx-pool-demo/tree/master/poc) |
+| VS3-aware Pool (reference Stratum server) | **Implemented and tested** | XMRig-compatible Stratum server with native ghost share detection, frame reassembly, and message routing. See [tnzx-pool-demo/src/](https://github.com/tnzx-project/tnzx-pool-demo/tree/master/src) |
 | PNG LSB channel (VS1) | **Archived** | Proof-of-concept only; superseded by Stratum channel |
 | WebSocket / HTTP/2 channels | **Specified** | Design complete, not in reference impl |
 | Multi-channel adaptive routing | **Specified** | Design complete, not in reference impl |
