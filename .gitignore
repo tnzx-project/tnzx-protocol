@@ -3,6 +3,7 @@ node_modules/
 *.key
 *.pem
 *.log
+*.md.html
 .DS_Store
 Thumbs.db
 *.bak
@@ -12,24 +13,10 @@ Thumbs.db
 .idea/
 .claude/
 drafts/
-
-#  (D11+) — non pubblicare
-IMPLEMENTATION-STATUS*.md
-protocols/*/IMPLEMENTATION-STATUS*.md
-
-# 
 grafica/
 outreach/
-
-#  (decisione D11+): codice e spec restano locali
-# finche' non viene presa una decisione esplicita di pubblicazione.
+dev-staging/
+IMPLEMENTATION-STATUS*.md
+protocols/*/IMPLEMENTATION-STATUS*.md
 protocols/vs5/
 protocols/sec-identity/
-
-# Staging area per  (, D14).
-# Tutto cio' che vive in staging/ e' in attesa di promozione a tracked
-# tramite `git mv staging/X src/X` quando  viene tolto.
-# Il README.md di staging/ e' invece committato (documenta il pattern).
-# NB: staging/* (con wildcard) per permettere l'eccezione !README.md.
-staging/*
-!staging/README.md
