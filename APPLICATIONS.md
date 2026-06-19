@@ -22,7 +22,7 @@ Not all described capabilities are currently available. The following table summ
 
 The TNZX protocols are designed for individuals who need to communicate privately in environments where:
 
-- Messaging applications are blocked (Iran, Russia, China, Belarus, Ethiopia)
+- Messaging applications are blocked under restricted network conditions
 - The *use* of privacy tools is itself illegal or dangerous — not just the content
 - Metadata exposure (who communicates with whom) is as dangerous as content exposure
 - Centralized servers can be compelled to produce data or shut down
